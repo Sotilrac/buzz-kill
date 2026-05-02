@@ -1,7 +1,12 @@
 package com.buzzkill.ui.screens
 
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -28,6 +33,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
@@ -49,6 +56,7 @@ import com.buzzkill.ui.components.LedSwitch
 import com.buzzkill.ui.components.Panel
 import com.buzzkill.ui.components.SevenSegmentDisplay
 import com.buzzkill.ui.theme.BuzzKillTheme
+import com.buzzkill.ui.theme.TiltNeonFamily
 
 enum class PermissionItem { Accessibility, Battery, Notifications, ScheduledPowerOn, OemKiller }
 
@@ -185,20 +193,87 @@ private enum class TimeEdit { Start, End }
 @Composable
 private fun Header() {
     Column {
-        Text(
-            text = "BUZZKILL",
-            color = Color(0xFFFFAA22),
-            fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.Bold,
-            fontSize = 28.sp,
-            letterSpacing = 6.sp,
-        )
+        NeonTitle()
         Text(
             text = "powers off your phone after inactivity, only at night",
             color = Color(0xFF665544),
             fontFamily = FontFamily.Monospace,
             fontSize = 11.sp,
             letterSpacing = 1.sp,
+        )
+    }
+}
+
+@Composable
+private fun NeonTitle() {
+    val infinite = androidx.compose.animation.core.rememberInfiniteTransition(label = "killFlicker")
+    // Long mostly-on cycle with two brief dips, simulating tube-warmup flicker.
+    val flicker by infinite.animateFloat(
+        initialValue = 1f,
+        targetValue = 1f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = androidx.compose.animation.core.keyframes {
+                durationMillis = 7000
+                1f at 0
+                1f at 4500
+                0.55f at 4540
+                1f at 4600
+                1f at 5800
+                0.7f at 5830
+                1f at 5870
+                1f at 7000
+            },
+        ),
+        label = "killFlickerAlpha",
+    )
+
+    Row(verticalAlignment = Alignment.Bottom) {
+        Text(
+            text = "BUZZ",
+            color = Color(0xFFFFAA22),
+            fontFamily = TiltNeonFamily,
+            fontSize = 44.sp,
+            letterSpacing = 2.sp,
+        )
+        NeonText(
+            text = "KILL",
+            baseColor = Color(0xFFFF3322),
+            alpha = flicker,
+        )
+    }
+}
+
+@Composable
+private fun NeonText(text: String, baseColor: Color, alpha: Float) {
+    val core = baseColor.copy(alpha = (1f * alpha).coerceIn(0f, 1f))
+    val mid = baseColor.copy(alpha = (0.85f * alpha).coerceIn(0f, 1f))
+    val outer = baseColor.copy(alpha = (0.55f * alpha).coerceIn(0f, 1f))
+    Box {
+        // Outer halo, large blur.
+        Text(
+            text = text,
+            color = outer,
+            fontFamily = TiltNeonFamily,
+            fontSize = 44.sp,
+            letterSpacing = 2.sp,
+            modifier = Modifier.blur(16.dp, BlurredEdgeTreatment.Unbounded),
+        )
+        // Mid glow.
+        Text(
+            text = text,
+            color = mid,
+            fontFamily = TiltNeonFamily,
+            fontSize = 44.sp,
+            letterSpacing = 2.sp,
+            modifier = Modifier.blur(6.dp, BlurredEdgeTreatment.Unbounded),
+        )
+        // Bright core.
+        Text(
+            text = text,
+            color = core,
+            fontFamily = TiltNeonFamily,
+            fontSize = 44.sp,
+            letterSpacing = 2.sp,
         )
     }
 }
@@ -212,22 +287,16 @@ private fun SchedulePanel(
     onSetInactivitySeconds: (Int) -> Unit,
 ) {
     Panel(label = "schedule", modifier = Modifier.fillMaxWidth()) {
-        // Armed switch on the far left, time controls (window + inactivity) on
-        // the far right, all stacked vertically.
+        // Time controls (window + inactivity) on the far left, armed switch on
+        // the far right.
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            LedSwitch(
-                isOn = persisted.enabled,
-                onToggle = { onToggleEnabled(!persisted.enabled) },
-                label = "armed",
-            )
-            Spacer(Modifier.width(16.dp))
             Column(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
-                horizontalAlignment = Alignment.End,
+                horizontalAlignment = Alignment.Start,
             ) {
                 LabeledTime(
                     label = "window open",
@@ -244,6 +313,12 @@ private fun SchedulePanel(
                     onChange = onSetInactivitySeconds,
                 )
             }
+            Spacer(Modifier.width(16.dp))
+            LedSwitch(
+                isOn = persisted.enabled,
+                onToggle = { onToggleEnabled(!persisted.enabled) },
+                label = "armed",
+            )
         }
     }
 }
@@ -252,7 +327,7 @@ private fun SchedulePanel(
 private fun LabeledTime(label: String, minutes: Int, onClick: () -> Unit) {
     Column(
         verticalArrangement = Arrangement.spacedBy(2.dp),
-        horizontalAlignment = Alignment.End,
+        horizontalAlignment = Alignment.Start,
         modifier = Modifier.clickable(onClick = onClick),
     ) {
         Text(
@@ -275,7 +350,7 @@ private fun InactivityStepper(seconds: Int, onChange: (Int) -> Unit) {
     val minutes = seconds / 60
     Column(
         verticalArrangement = Arrangement.spacedBy(2.dp),
-        horizontalAlignment = Alignment.End,
+        horizontalAlignment = Alignment.Start,
     ) {
         Text(
             text = "INACTIVITY",
@@ -326,13 +401,40 @@ private fun StatusPanel(
     onFixPermission: (PermissionItem) -> Unit,
     onTogglePermissionAck: (PermissionItem) -> Unit,
 ) {
+    // The checklist auto-shows while permissions are missing; once everything is
+    // granted, it collapses behind a small toggle so the user can revisit setup
+    // without having to revoke a permission first.
+    val needsSetup = state.status is StatusLine.NeedsSetup
+    var showChecklist by remember(needsSetup) { mutableStateOf(needsSetup) }
+
     Panel(label = "status", modifier = Modifier.fillMaxWidth()) {
-        when (val s = state.status) {
-            is StatusLine.NeedsSetup -> ChecklistView(state.permissions, onFixPermission, onTogglePermissionAck)
-            is StatusLine.Disabled -> StatusText("Disabled. Toggle ARMED to begin.")
-            is StatusLine.Armed -> StatusText("Armed. Window opens in ${formatDuration(s.nextOpenMinutes * 60)}.")
-            is StatusLine.Active -> StatusText("Active. ${formatDuration(s.minutesRemainingInWindow * 60)} remaining in window.")
-            is StatusLine.Counting -> StatusText("Counting down. ${formatDuration(s.secondsRemaining)} until shutdown.")
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            when (val s = state.status) {
+                is StatusLine.NeedsSetup -> StatusText("Setup incomplete: ${s.missing.size} item${if (s.missing.size == 1) "" else "s"} pending.")
+                is StatusLine.Disabled -> StatusText("Disabled. Toggle ARMED to begin.")
+                is StatusLine.Armed -> StatusText("Armed. Window opens in ${formatDuration(s.nextOpenMinutes * 60)}.")
+                is StatusLine.Active -> StatusText("Active. ${formatDuration(s.minutesRemainingInWindow * 60)} remaining in window.")
+                is StatusLine.Counting -> StatusText("Counting down. ${formatDuration(s.secondsRemaining)} until shutdown.")
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = if (showChecklist) "hide setup" else "show setup",
+                    color = Color(0xFF665544),
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 10.sp,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.clickable { showChecklist = !showChecklist },
+                )
+            }
+
+            if (showChecklist) {
+                ChecklistView(state.permissions, onFixPermission, onTogglePermissionAck)
+            }
         }
     }
 }

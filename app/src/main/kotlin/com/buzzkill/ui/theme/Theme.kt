@@ -4,6 +4,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import com.buzzkill.R
+
+val TiltNeonFamily = FontFamily(Font(R.font.tilt_neon))
 
 private val BuzzKillColorScheme = darkColorScheme(
     primary = Color(0xFFFFAA22),       // amber LCD
