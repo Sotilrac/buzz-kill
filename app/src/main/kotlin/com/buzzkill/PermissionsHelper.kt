@@ -9,18 +9,29 @@ import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
-import android.view.accessibility.AccessibilityManager
+import android.text.TextUtils
 import androidx.core.content.ContextCompat
 import com.buzzkill.service.ShutdownAccessibilityService
 
 object PermissionsHelper {
 
     fun isAccessibilityEnabled(context: Context): Boolean {
-        val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
+        // Reading Settings.Secure is the canonical, version-stable check. The
+        // AccessibilityManager.getEnabledAccessibilityServiceList() API returns
+        // empty on some Android builds (saw it on the API 37 emulator) until the
+        // service has actually been bound, which doesn't happen until the user
+        // returns to a different activity. The Secure setting flips the moment
+        // the toggle is on, which is what we want for the checklist UI.
         val expectedId = "${context.packageName}/${ShutdownAccessibilityService::class.java.name}"
-        // Use the modern API; the old settings-string scrape misses some OEM variations.
-        return am.getEnabledAccessibilityServiceList(android.accessibilityservice.AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
-            .any { it.id.equals(expectedId, ignoreCase = true) }
+        val enabled = Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+        ) ?: return false
+        val splitter = TextUtils.SimpleStringSplitter(':').apply { setString(enabled) }
+        for (id in splitter) {
+            if (id.equals(expectedId, ignoreCase = true)) return true
+        }
+        return false
     }
 
     fun isBatteryOptimizationExempt(context: Context): Boolean {
