@@ -132,11 +132,13 @@ class ShutdownAccessibilityService : AccessibilityService() {
         scope.launch {
             val result = PowerOffSequence(this@ShutdownAccessibilityService).run(dryRun = true)
             val msg = when (result) {
-                is PowerOffSequence.Result.DryRun -> "Match: '${result.matchedText}'. Strings OK."
+                is PowerOffSequence.Result.DryRun ->
+                    "Match: '${result.matchedText}' via ${result.mode}. Strings OK."
                 is PowerOffSequence.Result.NotFound ->
-                    "No match. Visited (${result.visited.size} nodes): ${result.visited.take(8)}"
+                    "No match. Visited (${result.visited.size} nodes): ${result.visited.take(12)}"
                 is PowerOffSequence.Result.DialogDidNotOpen -> "Power dialog did not open."
-                is PowerOffSequence.Result.Triggered -> "Triggered: '${result.matchedText}'"
+                is PowerOffSequence.Result.Triggered ->
+                    "Triggered: '${result.matchedText}' via ${result.mode}"
             }
             withContext(Dispatchers.Main) {
                 Toast.makeText(this@ShutdownAccessibilityService, msg, Toast.LENGTH_LONG).show()
