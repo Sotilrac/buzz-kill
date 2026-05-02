@@ -188,23 +188,13 @@ private enum class TimeEdit { Start, End }
 @Composable
 private fun Header() {
     Column {
-        // Top tagline — "they would kill for it" punchline. Two short stacked lines
-        // for that movie-poster cadence.
         Text(
-            text = "COMPANIES WOULD KILL",
+            text = "CORPORATIONS KILL FOR YOUR ATTENTION.",
             color = Color(0xFFFF6644),
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Black,
             fontSize = 11.sp,
-            letterSpacing = 3.sp,
-        )
-        Text(
-            text = "FOR YOUR ATTENTION.",
-            color = Color(0xFFFF6644),
-            fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.Black,
-            fontSize = 11.sp,
-            letterSpacing = 3.sp,
+            letterSpacing = 2.sp,
         )
         Spacer(Modifier.height(4.dp))
         NeonTitle()
