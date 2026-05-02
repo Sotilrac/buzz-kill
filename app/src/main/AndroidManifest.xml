@@ -38,7 +38,6 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
-                <data android:scheme="package" android:path="com.buzzkill" />
             </intent-filter>
         </receiver>
 

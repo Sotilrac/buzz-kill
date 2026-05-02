@@ -91,6 +91,13 @@ cd buzz-off
 
 The first sync will download Gradle, the AGP, Kotlin, and the Compose libraries. It can take a few minutes.
 
+### Note on the Gradle wrapper
+
+The repo ships `gradle-wrapper.properties` but not the wrapper jar / `gradlew` script. Two ways to get them:
+
+- **Easiest**: open the project in Android Studio. It detects the missing wrapper, prompts to import, and bootstraps it for you.
+- **From CLI**: install Gradle once (e.g. `sdk install gradle 8.11.1` via SDKMAN), then in the repo run `gradle wrapper --gradle-version 8.11.1`. Commit the resulting files.
+
 ## After install: permission walkthrough
 
 The app shows an onboarding checklist on first launch. Each row deep-links to the right system surface and re-verifies when you return.
@@ -116,6 +123,44 @@ OxygenOS is moderately aggressive about killing background work. See <https://do
 ## Testing the shutdown mechanism without losing your work
 
 The app includes a **Test trigger** with a 10-second cancellable countdown that runs the shutdown sequence in dry-run mode by default. It opens the system power dialog, finds the matching node, and Toasts what it would have tapped — without actually tapping. Use this after install to verify that the OnePlus power-dialog strings still match.
+
+## Troubleshooting
+
+### "Test trigger says: 'No match. Visited (X nodes): [...]'"
+
+The OnePlus power dialog uses different text on your firmware than what's hardcoded in `oem/PowerDialogStrings.kt`. The Toast lists the first 8 visited node texts, so you'll see what the dialog actually contains. Add the exact string (lowercased) to the OnePlus row in that file and rebuild. If you see the right strings (e.g. "Power off") but no match, the comparison is case-sensitive on the file side; everything is normalised before matching, so this shouldn't happen.
+
+### "Test trigger says: 'Power dialog did not open'"
+
+The accessibility service isn't actually enabled, or it crashed. Re-toggle it under `Settings → Additional settings → Accessibility → Installed services → BuzzKill`. Watch `adb logcat -s BuzzKill.svc:* BuzzKill.alarm:* BuzzKill.poweroff:*` for clues.
+
+### Foreground notification disappears after a while on OxygenOS
+
+OxygenOS swept the app despite battery optimization being off. Try:
+
+- Lock BuzzKill in Recents (the padlock).
+- `Settings → Battery → Battery optimization → BuzzKill → Don't optimize`.
+- `Settings → Apps → BuzzKill → Battery → Allow background activity`.
+- See <https://dontkillmyapp.com/oneplus> for the latest workarounds.
+
+### Phone shut down but didn't wake up
+
+The OEM scheduled-power-on isn't enabled. Open `Settings → Additional settings → Scheduled power on/off` and turn the **Power on** schedule on. There is no API to verify or set this from the app side.
+
+### Inactivity alarm fires while I'm using the phone
+
+The screen-on broadcast didn't reach the service in time, or you locked then unlocked rapidly. The service cancels the alarm on `ACTION_SCREEN_ON` and `ACTION_USER_PRESENT`. If this happens reliably, capture logcat and check the timing.
+
+### Logcat tags
+
+- `BuzzKill.svc` — accessibility service (window state, screen state, alarm decisions)
+- `BuzzKill.alarm` — alarm manager scheduling
+- `BuzzKill.poweroff` — power-off sequence (node walking, click, confirmation)
+- `BuzzKill.boot`, `BuzzKill.replaced`, `BuzzKill.fgs` — receivers and FGS
+
+```bash
+adb logcat -s 'BuzzKill.*'
+```
 
 ## Uninstall
 

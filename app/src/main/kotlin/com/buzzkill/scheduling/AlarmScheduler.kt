@@ -33,6 +33,8 @@ class AlarmScheduler(private val context: Context) {
         if (!s.enabled) {
             cancelDailyWindow()
             cancelInactivity()
+            // Make sure the service tears down state and the FGS stops.
+            context.sendBroadcast(internalIntent(Broadcasts.WINDOW_CLOSE))
             return
         }
         scheduleDaily(REQ_OPEN, s.windowStartMinutes, Broadcasts.WINDOW_OPEN)
