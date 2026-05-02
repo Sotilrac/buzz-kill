@@ -45,6 +45,7 @@ class MainActivity : ComponentActivity() {
                         onSetWindow = { s, e -> viewModel.setWindow(s, e) },
                         onSetInactivitySeconds = viewModel::setInactivitySeconds,
                         onFixPermission = ::onFixPermission,
+                        onTogglePermissionAck = ::onTogglePermissionAck,
                         onTestTriggerDryRun = { sendTestTrigger(Broadcasts.TEST_TRIGGER_DRY_RUN) },
                         onTestTriggerLive = { sendTestTrigger(Broadcasts.TEST_TRIGGER_LIVE) },
                         onConfirmFirstShutdown = { viewModel.setFirstShutdownConfirmed(true) },
@@ -95,6 +96,17 @@ class MainActivity : ComponentActivity() {
                 ).show()
                 viewModel.setOemKillerAcked(true)
             }
+        }
+    }
+
+    private fun onTogglePermissionAck(item: PermissionItem) {
+        val current = viewModel.uiState.value.permissions
+        when (item) {
+            PermissionItem.ScheduledPowerOn ->
+                viewModel.setScheduledPowerOnAcked(!current.scheduledPowerOnAcked)
+            PermissionItem.OemKiller ->
+                viewModel.setOemKillerAcked(!current.oemKillerAcked)
+            else -> Unit // System-derived rows aren't user-toggleable.
         }
     }
 

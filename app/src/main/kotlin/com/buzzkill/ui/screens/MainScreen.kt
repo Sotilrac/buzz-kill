@@ -59,6 +59,7 @@ fun MainScreen(
     onSetWindow: (start: Int, end: Int) -> Unit,
     onSetInactivitySeconds: (Int) -> Unit,
     onFixPermission: (PermissionItem) -> Unit,
+    onTogglePermissionAck: (PermissionItem) -> Unit,
     onTestTriggerDryRun: () -> Unit,
     onTestTriggerLive: () -> Unit,
     onConfirmFirstShutdown: () -> Unit = {},
@@ -94,6 +95,7 @@ fun MainScreen(
             StatusPanel(
                 state = state,
                 onFixPermission = onFixPermission,
+                onTogglePermissionAck = onTogglePermissionAck,
             )
         }
         item {
@@ -192,11 +194,11 @@ private fun Header() {
             letterSpacing = 6.sp,
         )
         Text(
-            text = "phone-off scheduler",
+            text = "powers off your phone after inactivity, only at night",
             color = Color(0xFF665544),
             fontFamily = FontFamily.Monospace,
             fontSize = 11.sp,
-            letterSpacing = 2.sp,
+            letterSpacing = 1.sp,
         )
     }
 }
@@ -210,43 +212,38 @@ private fun SchedulePanel(
     onSetInactivitySeconds: (Int) -> Unit,
 ) {
     Panel(label = "schedule", modifier = Modifier.fillMaxWidth()) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+        // Armed switch on the far left, time controls (window + inactivity) on
+        // the far right, all stacked vertically.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            // Row 1: armed switch + window times.
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                LedSwitch(
-                    isOn = persisted.enabled,
-                    onToggle = { onToggleEnabled(!persisted.enabled) },
-                    label = "armed",
-                )
-                Spacer(Modifier.width(16.dp))
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    horizontalAlignment = Alignment.End,
-                ) {
-                    LabeledTime(
-                        label = "window open",
-                        minutes = persisted.windowStartMinutes,
-                        onClick = onEditStart,
-                    )
-                    LabeledTime(
-                        label = "window close",
-                        minutes = persisted.windowEndMinutes,
-                        onClick = onEditEnd,
-                    )
-                }
-            }
-            // Row 2: inactivity stepper, full width.
-            InactivityRow(
-                seconds = persisted.inactivityTimeoutSeconds,
-                onChange = onSetInactivitySeconds,
+            LedSwitch(
+                isOn = persisted.enabled,
+                onToggle = { onToggleEnabled(!persisted.enabled) },
+                label = "armed",
             )
+            Spacer(Modifier.width(16.dp))
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalAlignment = Alignment.End,
+            ) {
+                LabeledTime(
+                    label = "window open",
+                    minutes = persisted.windowStartMinutes,
+                    onClick = onEditStart,
+                )
+                LabeledTime(
+                    label = "window close",
+                    minutes = persisted.windowEndMinutes,
+                    onClick = onEditEnd,
+                )
+                InactivityStepper(
+                    seconds = persisted.inactivityTimeoutSeconds,
+                    onChange = onSetInactivitySeconds,
+                )
+            }
         }
     }
 }
@@ -274,14 +271,14 @@ private fun LabeledTime(label: String, minutes: Int, onClick: () -> Unit) {
 }
 
 @Composable
-private fun InactivityRow(seconds: Int, onChange: (Int) -> Unit) {
+private fun InactivityStepper(seconds: Int, onChange: (Int) -> Unit) {
     val minutes = seconds / 60
     Column(
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        horizontalAlignment = Alignment.End,
     ) {
         Text(
-            text = "INACTIVITY TIMEOUT",
+            text = "INACTIVITY",
             color = Color(0xFF665544),
             fontFamily = FontFamily.Monospace,
             fontSize = 9.sp,
@@ -289,8 +286,7 @@ private fun InactivityRow(seconds: Int, onChange: (Int) -> Unit) {
         )
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             HardwareButton(
                 text = "-",
@@ -298,29 +294,27 @@ private fun InactivityRow(seconds: Int, onChange: (Int) -> Unit) {
                     val next = (minutes - 1).coerceAtLeast(SettingsRepository.MIN_INACTIVITY_MINUTES)
                     onChange(next * 60)
                 },
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
             )
-            Spacer(Modifier.weight(1f))
             SevenSegmentDisplay(
                 text = formatMinutes(minutes),
-                digitWidth = 22.dp,
-                digitHeight = 36.dp,
+                digitWidth = 18.dp,
+                digitHeight = 30.dp,
             )
             Text(
                 text = "MIN",
                 color = Color(0xFF665544),
                 fontFamily = FontFamily.Monospace,
-                fontSize = 11.sp,
-                letterSpacing = 2.sp,
+                fontSize = 10.sp,
+                letterSpacing = 1.sp,
             )
-            Spacer(Modifier.weight(1f))
             HardwareButton(
                 text = "+",
                 onClick = {
                     val next = (minutes + 1).coerceAtMost(SettingsRepository.MAX_INACTIVITY_MINUTES)
                     onChange(next * 60)
                 },
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
             )
         }
     }
@@ -330,10 +324,11 @@ private fun InactivityRow(seconds: Int, onChange: (Int) -> Unit) {
 private fun StatusPanel(
     state: UiState,
     onFixPermission: (PermissionItem) -> Unit,
+    onTogglePermissionAck: (PermissionItem) -> Unit,
 ) {
     Panel(label = "status", modifier = Modifier.fillMaxWidth()) {
         when (val s = state.status) {
-            is StatusLine.NeedsSetup -> ChecklistView(state.permissions, onFixPermission)
+            is StatusLine.NeedsSetup -> ChecklistView(state.permissions, onFixPermission, onTogglePermissionAck)
             is StatusLine.Disabled -> StatusText("Disabled. Toggle ARMED to begin.")
             is StatusLine.Armed -> StatusText("Armed. Window opens in ${formatDuration(s.nextOpenMinutes * 60)}.")
             is StatusLine.Active -> StatusText("Active. ${formatDuration(s.minutesRemainingInWindow * 60)} remaining in window.")
@@ -353,7 +348,11 @@ private fun StatusText(text: String) {
 }
 
 @Composable
-private fun ChecklistView(perms: PermissionStatus, onFix: (PermissionItem) -> Unit) {
+private fun ChecklistView(
+    perms: PermissionStatus,
+    onFix: (PermissionItem) -> Unit,
+    onToggleAck: (PermissionItem) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         ChecklistRow(
             label = "Accessibility service",
@@ -378,12 +377,14 @@ private fun ChecklistView(perms: PermissionStatus, onFix: (PermissionItem) -> Un
             granted = perms.scheduledPowerOnAcked,
             ledOff = LedColor.Amber,
             onFix = { onFix(PermissionItem.ScheduledPowerOn) },
+            onToggleAck = { onToggleAck(PermissionItem.ScheduledPowerOn) },
         )
         ChecklistRow(
             label = "Battery-killer override",
             granted = perms.oemKillerAcked,
             ledOff = LedColor.Amber,
             onFix = { onFix(PermissionItem.OemKiller) },
+            onToggleAck = { onToggleAck(PermissionItem.OemKiller) },
         )
     }
 }
@@ -394,14 +395,35 @@ private fun ChecklistRow(
     granted: Boolean,
     ledOff: LedColor,
     onFix: () -> Unit,
+    onToggleAck: (() -> Unit)? = null,
 ) {
+    val rowModifier = if (onToggleAck != null) {
+        Modifier.fillMaxWidth().clickable(onClick = onToggleAck)
+    } else {
+        Modifier.fillMaxWidth()
+    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = rowModifier,
     ) {
         Led(isOn = granted, color = if (granted) LedColor.Green else ledOff)
-        RowLabel(text = label)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                color = Color(0xFFCCBBAA),
+                fontFamily = FontFamily.Monospace,
+                fontSize = 13.sp,
+            )
+            if (onToggleAck != null) {
+                Text(
+                    text = if (granted) "tap to un-confirm" else "tap row to confirm",
+                    color = Color(0xFF665544),
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 9.sp,
+                )
+            }
+        }
         if (!granted) {
             HardwareButton(
                 text = "fix",
@@ -597,6 +619,7 @@ private fun MainScreenPreview() {
             onSetWindow = { _, _ -> },
             onSetInactivitySeconds = {},
             onFixPermission = {},
+            onTogglePermissionAck = {},
             onTestTriggerDryRun = {},
             onTestTriggerLive = {},
         )
