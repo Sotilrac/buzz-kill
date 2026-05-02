@@ -86,7 +86,7 @@ fun MainScreen(
     ) {
         Header()
         SchedulePanel(
-            persisted = state.persisted,
+            state = state,
             onToggleEnabled = { newValue ->
                 if (newValue && !state.persisted.firstShutdownConfirmed) {
                     pendingEnable = true
@@ -98,7 +98,8 @@ fun MainScreen(
             onEditEnd = { editing = TimeEdit.End },
             onSetInactivitySeconds = onSetInactivitySeconds,
         )
-        StatusPanel(
+        ScheduleNote()
+        SetupPanel(
             state = state,
             onFixPermission = onFixPermission,
             onTogglePermissionAck = onTogglePermissionAck,
@@ -316,23 +317,21 @@ private fun rememberFlickerAlpha(enabled: Boolean): androidx.compose.runtime.Sta
 
 @Composable
 private fun SchedulePanel(
-    persisted: PersistedState,
+    state: UiState,
     onToggleEnabled: (Boolean) -> Unit,
     onEditStart: () -> Unit,
     onEditEnd: () -> Unit,
     onSetInactivitySeconds: (Int) -> Unit,
 ) {
+    val persisted = state.persisted
     Panel(label = "schedule", modifier = Modifier.fillMaxWidth()) {
-        // Time controls (window + inactivity) on the far left, armed switch on
-        // the far right.
+        // Inputs left, armed switch + status text on the right.
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            // IntrinsicSize.Max makes the inner column as wide as its widest child
-            // (the stepper). The two LabeledTime rows then have a known width to
-            // centre their 7-seg displays inside.
+            // IntrinsicSize.Max sizes the column to the widest child (the stepper).
             Column(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 horizontalAlignment = Alignment.Start,
@@ -354,13 +353,35 @@ private fun SchedulePanel(
                 )
             }
             Spacer(Modifier.width(16.dp))
-            LedSwitch(
-                isOn = persisted.enabled,
-                onToggle = { onToggleEnabled(!persisted.enabled) },
-                label = "armed",
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                LedSwitch(
+                    isOn = persisted.enabled,
+                    onToggle = { onToggleEnabled(!persisted.enabled) },
+                    label = null, // LED already says ARMED — don't repeat it.
+                )
+            }
         }
+        Spacer(Modifier.height(10.dp))
+        ScheduleStatusText(state = state)
     }
+}
+
+@Composable
+private fun ScheduleStatusText(state: UiState) {
+    val text = when (val s = state.status) {
+        is StatusLine.NeedsSetup -> "Setup incomplete: ${s.missing.size} item${if (s.missing.size == 1) "" else "s"} pending."
+        is StatusLine.Disabled -> "Disabled. Toggle the switch to arm."
+        is StatusLine.Armed -> "Armed. Window opens in ${formatDuration(s.nextOpenMinutes * 60)}."
+        is StatusLine.Active -> "Active. ${formatDuration(s.minutesRemainingInWindow * 60)} remaining in window."
+        is StatusLine.Counting -> "Counting down. ${formatDuration(s.secondsRemaining)} until shutdown."
+    }
+    Text(
+        text = text,
+        color = Color(0xFFCCBBAA),
+        fontFamily = FontFamily.Monospace,
+        fontSize = 12.sp,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @Composable
@@ -435,57 +456,43 @@ private fun InactivityStepper(seconds: Int, onChange: (Int) -> Unit) {
 }
 
 @Composable
-private fun StatusPanel(
+private fun ScheduleNote() {
+    Text(
+        text = "Inside the window, if your screen stays off for the inactivity period, BuzzKill kills the phone. Use your OEM's scheduled power-on to bring it back in the morning.",
+        color = Color(0xFF998877),
+        fontFamily = FontFamily.Monospace,
+        fontSize = 11.sp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp),
+    )
+}
+
+@Composable
+private fun SetupPanel(
     state: UiState,
     onFixPermission: (PermissionItem) -> Unit,
     onTogglePermissionAck: (PermissionItem) -> Unit,
 ) {
-    // The checklist auto-shows while permissions are missing; once everything is
-    // granted, it collapses behind a small toggle so the user can revisit setup
-    // without having to revoke a permission first.
-    val needsSetup = state.status is StatusLine.NeedsSetup
-    var showChecklist by remember(needsSetup) { mutableStateOf(needsSetup) }
+    val pending = state.permissions.missingItems.size
+    // Default-expanded while anything is missing; collapsed once everything is set.
+    var expanded by remember(pending) { mutableStateOf(pending > 0) }
 
-    Panel(label = "status", modifier = Modifier.fillMaxWidth()) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            when (val s = state.status) {
-                is StatusLine.NeedsSetup -> StatusText("Setup incomplete: ${s.missing.size} item${if (s.missing.size == 1) "" else "s"} pending.")
-                is StatusLine.Disabled -> StatusText("Disabled. Toggle ARMED to begin.")
-                is StatusLine.Armed -> StatusText("Armed. Window opens in ${formatDuration(s.nextOpenMinutes * 60)}.")
-                is StatusLine.Active -> StatusText("Active. ${formatDuration(s.minutesRemainingInWindow * 60)} remaining in window.")
-                is StatusLine.Counting -> StatusText("Counting down. ${formatDuration(s.secondsRemaining)} until shutdown.")
-            }
+    val trailing = when {
+        pending > 0 -> "$pending pending  ${if (expanded) "▾" else "▸"}"
+        else -> "all set  ${if (expanded) "▾" else "▸"}"
+    }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = if (showChecklist) "hide setup" else "show setup",
-                    color = Color(0xFF665544),
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 10.sp,
-                    letterSpacing = 1.sp,
-                    modifier = Modifier.clickable { showChecklist = !showChecklist },
-                )
-            }
-
-            if (showChecklist) {
-                ChecklistView(state.permissions, onFixPermission, onTogglePermissionAck)
-            }
+    Panel(
+        label = "setup",
+        trailing = trailing,
+        onLabelClick = { expanded = !expanded },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        if (expanded) {
+            ChecklistView(state.permissions, onFixPermission, onTogglePermissionAck)
         }
     }
-}
-
-@Composable
-private fun StatusText(text: String) {
-    Text(
-        text = text,
-        color = Color(0xFFCCBBAA),
-        fontFamily = FontFamily.Monospace,
-        fontSize = 14.sp,
-    )
 }
 
 @Composable
