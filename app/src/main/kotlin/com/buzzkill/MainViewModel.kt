@@ -8,6 +8,7 @@ import com.buzzkill.data.PersistedState
 import com.buzzkill.data.SettingsRepository
 import com.buzzkill.data.StatusLine
 import com.buzzkill.data.UiState
+import com.buzzkill.scheduling.AlarmScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -66,8 +67,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
-    fun setEnabled(enabled: Boolean) = viewModelScope.launch { repo.setEnabled(enabled) }
-    fun setWindow(startMin: Int, endMin: Int) = viewModelScope.launch { repo.setWindow(startMin, endMin) }
+    fun setEnabled(enabled: Boolean) = viewModelScope.launch {
+        repo.setEnabled(enabled)
+        AlarmScheduler.rearm(getApplication())
+    }
+    fun setWindow(startMin: Int, endMin: Int) = viewModelScope.launch {
+        repo.setWindow(startMin, endMin)
+        AlarmScheduler.rearm(getApplication())
+    }
     fun setInactivitySeconds(s: Int) = viewModelScope.launch { repo.setInactivityTimeoutSeconds(s) }
     fun setScheduledPowerOnAcked(b: Boolean) = viewModelScope.launch { repo.setScheduledPowerOnAcked(b) }
     fun setOemKillerAcked(b: Boolean) = viewModelScope.launch { repo.setOemKillerAcked(b) }
