@@ -24,8 +24,10 @@ out/
 *.keystore
 keystore.properties
 
-# Logs / OS / editor
+# Logs / OS / editor / JVM crash dumps
 *.log
+*.hprof
+hs_err_pid*.log
 .DS_Store
 *.swp
 *~
