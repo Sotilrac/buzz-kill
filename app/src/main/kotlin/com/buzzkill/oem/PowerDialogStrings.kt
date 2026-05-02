@@ -49,4 +49,23 @@ object PowerDialogStrings {
     /** Union of all known strings, used as a fallback. */
     val allKnownPrimary: List<String> = Oem.entries.flatMap { stringsFor(it).primaryActions }.distinct()
     val allKnownConfirm: List<String> = Oem.entries.flatMap { stringsFor(it).confirmActions }.distinct()
+
+    /**
+     * For dialogs with no clickable "Power off" target — the action is a fixed gesture.
+     * The matcher uses substring/contains against visited node text to detect the dialog.
+     */
+    enum class GestureFallback { None, TwoFingerSwipeDown }
+
+    fun gestureFallbackFor(oem: Oem): GestureFallback = when (oem) {
+        // OxygenOS 13+ on OnePlus 11 etc.: instruction caption + two-finger swipe.
+        Oem.OnePlus -> GestureFallback.TwoFingerSwipeDown
+        else -> GestureFallback.None
+    }
+
+    /** Marker substrings (lowercase) that identify a two-finger-swipe-style dialog. */
+    val twoFingerSwipeDownMarkers: List<String> = listOf(
+        "two fingers to power it off",
+        "two fingers to power off",
+        "swipe down with two fingers",
+    )
 }

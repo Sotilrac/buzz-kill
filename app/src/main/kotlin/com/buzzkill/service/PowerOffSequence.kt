@@ -36,7 +36,7 @@ class PowerOffSequence(private val service: AccessibilityService) {
         data object DialogDidNotOpen : Result
     }
 
-    enum class Mode { Click, Swipe }
+    enum class Mode { Click, Swipe, TwoFingerSwipeDown }
 
     suspend fun run(dryRun: Boolean): Result {
         Log.i(TAG, "running power-off sequence (dryRun=$dryRun)")
@@ -50,7 +50,25 @@ class PowerOffSequence(private val service: AccessibilityService) {
 
         val visited = mutableListOf<String>()
         val hit = findMatch(service.rootInActiveWindow, primaryTargets, visited)
-            ?: return Result.NotFound(visited)
+        if (hit == null) {
+            Log.w(TAG, "no text match. visited (${visited.size}): $visited")
+            // OEM-specific gesture fallback (e.g. OnePlus two-finger slide UI).
+            val fallback = PowerDialogStrings.gestureFallbackFor(OemDetector.current)
+            if (fallback == PowerDialogStrings.GestureFallback.TwoFingerSwipeDown) {
+                val marker = PowerDialogStrings.twoFingerSwipeDownMarkers
+                    .firstOrNull { m -> visited.any { v -> v.contains(m) } }
+                if (marker != null) {
+                    Log.i(TAG, "two-finger-swipe-down dialog detected via marker: '$marker'")
+                    if (dryRun) return Result.DryRun(marker, Mode.TwoFingerSwipeDown)
+                    val ok = dispatchTwoFingerSwipeDown()
+                    return if (ok) Result.Triggered(marker, Mode.TwoFingerSwipeDown)
+                    else Result.NotFound(listOf("two-finger swipe-down dispatch failed (marker '$marker')"))
+                }
+            }
+            Log.w(TAG, "no fallback triggered. looked for: $primaryTargets")
+            return Result.NotFound(visited)
+        }
+        Log.i(TAG, "matched '${hit.matchedText}' bounds=${hit.bounds} clickable=${hit.clickable != null}")
 
         val mode = if (hit.clickable != null) Mode.Click else Mode.Swipe
 
@@ -66,6 +84,7 @@ class PowerOffSequence(private val service: AccessibilityService) {
                 ok
             }
             Mode.Swipe -> dispatchSwipe(hit.bounds)
+            Mode.TwoFingerSwipeDown -> false // unreachable: only used in the no-match fallback path above
         }
         if (!acted) {
             return Result.NotFound(listOf("matched '${hit.matchedText}' but ${mode.name} failed"))
@@ -83,6 +102,48 @@ class PowerOffSequence(private val service: AccessibilityService) {
         }
 
         return Result.Triggered(hit.matchedText, mode)
+    }
+
+    private suspend fun dispatchTwoFingerSwipeDown(): Boolean {
+        val metrics = service.resources.displayMetrics
+        val w = metrics.widthPixels
+        val h = metrics.heightPixels
+
+        val centerX = w / 2f
+        // Fingers spread ~80 dp apart; clamp to a reasonable absolute pixel range.
+        val spread = (w * 0.10f).coerceIn(60f, 200f)
+        val topY = h * 0.30f
+        val bottomY = h * 0.80f
+
+        val path1 = Path().apply {
+            moveTo(centerX - spread, topY)
+            lineTo(centerX - spread, bottomY)
+        }
+        val path2 = Path().apply {
+            moveTo(centerX + spread, topY)
+            lineTo(centerX + spread, bottomY)
+        }
+        Log.i(TAG, "two-finger swipe down: from y=$topY to y=$bottomY, spread=$spread, w=$w h=$h")
+
+        val gesture = GestureDescription.Builder()
+            .addStroke(GestureDescription.StrokeDescription(path1, 0L, TWO_FINGER_DURATION_MS))
+            .addStroke(GestureDescription.StrokeDescription(path2, 0L, TWO_FINGER_DURATION_MS))
+            .build()
+
+        return suspendCancellableCoroutine { cont ->
+            val handler = Handler(Looper.getMainLooper())
+            val callback = object : AccessibilityService.GestureResultCallback() {
+                override fun onCompleted(g: GestureDescription?) {
+                    if (cont.isActive) cont.resume(true)
+                }
+                override fun onCancelled(g: GestureDescription?) {
+                    Log.w(TAG, "two-finger swipe cancelled")
+                    if (cont.isActive) cont.resume(false)
+                }
+            }
+            val dispatched = service.dispatchGesture(gesture, callback, handler)
+            if (!dispatched && cont.isActive) cont.resume(false)
+        }
     }
 
     private suspend fun dispatchSwipe(targetBounds: Rect): Boolean {
@@ -184,5 +245,6 @@ class PowerOffSequence(private val service: AccessibilityService) {
         private const val POST_DIALOG_DELAY_MS = 500L
         private const val POST_TAP_DELAY_MS = 400L
         private const val SWIPE_DURATION_MS = 400L
+        private const val TWO_FINGER_DURATION_MS = 600L
     }
 }
