@@ -1,0 +1,33 @@
+# Android Studio / IntelliJ
+.idea/
+*.iml
+.gradle/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Build output
+build/
+*/build/
+out/
+
+# Generated
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# Keystores (do NOT commit)
+*.jks
+*.keystore
+keystore.properties
+
+# Logs / OS / editor
+*.log
+.DS_Store
+*.swp
+*~
+
+# Plan working file (kept under ~/.claude/plans/)
