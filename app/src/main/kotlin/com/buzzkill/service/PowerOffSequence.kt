@@ -110,12 +110,12 @@ class PowerOffSequence(private val service: AccessibilityService) {
         val h = metrics.heightPixels
 
         val centerX = w / 2f
-        // Fingers ~10% of screen width apart, clamped to a reasonable pixel range.
-        val spread = (w * 0.10f).coerceIn(80f, 160f)
-        // Long, slow, decisive swipe — start near the vertical centre, end near the
-        // bottom. OxygenOS slide-to-power-off needs a deliberate motion to engage.
-        val topY = h * 0.35f
-        val bottomY = h * 0.92f
+        // Fingers tight together so both land on the slider widget at screen centre.
+        val spread = 40f
+        // OnePlus 11 OxygenOS: slider is dead-centre; "Power off" target is ~25% of
+        // screen height below it. Start ON the slider, end on the target.
+        val topY = h * 0.50f
+        val bottomY = h * 0.75f
 
         val path1 = Path().apply {
             moveTo(centerX - spread, topY)
