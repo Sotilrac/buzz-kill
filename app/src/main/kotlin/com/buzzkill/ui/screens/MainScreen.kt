@@ -458,6 +458,7 @@ private fun TestTriggerPanel(onTrigger: () -> Unit) {
 
 private const val TEST_COUNTDOWN_SECONDS = 10
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun TimeEditDialog(
     initialMinutes: Int,
