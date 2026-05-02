@@ -54,18 +54,23 @@ object PowerDialogStrings {
      * For dialogs with no clickable "Power off" target — the action is a fixed gesture.
      * The matcher uses substring/contains against visited node text to detect the dialog.
      */
-    enum class GestureFallback { None, TwoFingerSwipeDown }
+    enum class GestureFallback { None, SlideDown }
 
     fun gestureFallbackFor(oem: Oem): GestureFallback = when (oem) {
         // OxygenOS 13+ on OnePlus 11 etc.: instruction caption + two-finger swipe.
-        Oem.OnePlus -> GestureFallback.TwoFingerSwipeDown
+        Oem.OnePlus -> GestureFallback.SlideDown
         else -> GestureFallback.None
     }
 
-    /** Marker substrings (lowercase) that identify a two-finger-swipe-style dialog. */
-    val twoFingerSwipeDownMarkers: List<String> = listOf(
+    /**
+     * Marker substrings (lowercase) that identify a slide-down-to-power-off dialog.
+     * On OxygenOS the instruction text says "two fingers" but the actual interaction
+     * is a single-finger slide on the centre slider widget.
+     */
+    val slideDownMarkers: List<String> = listOf(
         "two fingers to power it off",
         "two fingers to power off",
         "swipe down with two fingers",
+        "slide down to power off",
     )
 }

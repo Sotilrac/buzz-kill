@@ -36,7 +36,7 @@ class PowerOffSequence(private val service: AccessibilityService) {
         data object DialogDidNotOpen : Result
     }
 
-    enum class Mode { Click, Swipe, TwoFingerSwipeDown }
+    enum class Mode { Click, Swipe, SlideDown }
 
     suspend fun run(dryRun: Boolean): Result {
         Log.i(TAG, "running power-off sequence (dryRun=$dryRun)")
@@ -54,14 +54,14 @@ class PowerOffSequence(private val service: AccessibilityService) {
             Log.w(TAG, "no text match. visited (${visited.size}): $visited")
             // OEM-specific gesture fallback (e.g. OnePlus two-finger slide UI).
             val fallback = PowerDialogStrings.gestureFallbackFor(OemDetector.current)
-            if (fallback == PowerDialogStrings.GestureFallback.TwoFingerSwipeDown) {
-                val marker = PowerDialogStrings.twoFingerSwipeDownMarkers
+            if (fallback == PowerDialogStrings.GestureFallback.SlideDown) {
+                val marker = PowerDialogStrings.slideDownMarkers
                     .firstOrNull { m -> visited.any { v -> v.contains(m) } }
                 if (marker != null) {
                     Log.i(TAG, "two-finger-swipe-down dialog detected via marker: '$marker'")
-                    if (dryRun) return Result.DryRun(marker, Mode.TwoFingerSwipeDown)
-                    val ok = dispatchTwoFingerSwipeDown()
-                    return if (ok) Result.Triggered(marker, Mode.TwoFingerSwipeDown)
+                    if (dryRun) return Result.DryRun(marker, Mode.SlideDown)
+                    val ok = dispatchSlideDownGesture()
+                    return if (ok) Result.Triggered(marker, Mode.SlideDown)
                     else Result.NotFound(listOf("two-finger swipe-down dispatch failed (marker '$marker')"))
                 }
             }
@@ -84,7 +84,7 @@ class PowerOffSequence(private val service: AccessibilityService) {
                 ok
             }
             Mode.Swipe -> dispatchSwipe(hit.bounds)
-            Mode.TwoFingerSwipeDown -> false // unreachable: only used in the no-match fallback path above
+            Mode.SlideDown -> false // unreachable: only used in the no-match fallback path above
         }
         if (!acted) {
             return Result.NotFound(listOf("matched '${hit.matchedText}' but ${mode.name} failed"))
@@ -104,43 +104,37 @@ class PowerOffSequence(private val service: AccessibilityService) {
         return Result.Triggered(hit.matchedText, mode)
     }
 
-    private suspend fun dispatchTwoFingerSwipeDown(): Boolean {
+    private suspend fun dispatchSlideDownGesture(): Boolean {
         val metrics = service.resources.displayMetrics
         val w = metrics.widthPixels
         val h = metrics.heightPixels
 
-        val centerX = w / 2f
-        // Fingers tight together so both land on the slider widget at screen centre.
-        val spread = 40f
-        // OnePlus 11 OxygenOS: slider is dead-centre; "Power off" target is ~25% of
-        // screen height below it. Start ON the slider, end on the target.
-        val topY = h * 0.50f
-        val bottomY = h * 0.75f
+        // OnePlus / OxygenOS dialog: slider widget at screen centre, target 25%
+        // below. Despite the on-screen "two fingers" instruction, a single-finger
+        // slide on the slider engages the power-off action.
+        val startX = w / 2f
+        val startY = h * 0.50f
+        val endY = h * 0.75f
 
-        val path1 = Path().apply {
-            moveTo(centerX - spread, topY)
-            lineTo(centerX - spread, bottomY)
+        val path = Path().apply {
+            moveTo(startX, startY)
+            lineTo(startX, endY)
         }
-        val path2 = Path().apply {
-            moveTo(centerX + spread, topY)
-            lineTo(centerX + spread, bottomY)
-        }
-        Log.i(TAG, "two-finger swipe down: y=$topY→$bottomY, spread=$spread, w=$w h=$h, duration=${TWO_FINGER_DURATION_MS}ms")
+        Log.i(TAG, "slide down: ($startX,$startY)→($startX,$endY), duration=${SLIDE_DOWN_DURATION_MS}ms, w=$w h=$h")
 
         val gesture = GestureDescription.Builder()
-            .addStroke(GestureDescription.StrokeDescription(path1, 0L, TWO_FINGER_DURATION_MS))
-            .addStroke(GestureDescription.StrokeDescription(path2, 0L, TWO_FINGER_DURATION_MS))
+            .addStroke(GestureDescription.StrokeDescription(path, 0L, SLIDE_DOWN_DURATION_MS))
             .build()
 
         return suspendCancellableCoroutine { cont ->
             val handler = Handler(Looper.getMainLooper())
             val callback = object : AccessibilityService.GestureResultCallback() {
                 override fun onCompleted(g: GestureDescription?) {
-                    Log.i(TAG, "two-finger swipe completed")
+                    Log.i(TAG, "slide-down completed")
                     if (cont.isActive) cont.resume(true)
                 }
                 override fun onCancelled(g: GestureDescription?) {
-                    Log.w(TAG, "two-finger swipe cancelled by system")
+                    Log.w(TAG, "slide-down cancelled by system")
                     if (cont.isActive) cont.resume(false)
                 }
             }
@@ -251,6 +245,6 @@ class PowerOffSequence(private val service: AccessibilityService) {
         private const val POST_DIALOG_DELAY_MS = 800L
         private const val POST_TAP_DELAY_MS = 400L
         private const val SWIPE_DURATION_MS = 400L
-        private const val TWO_FINGER_DURATION_MS = 1100L
+        private const val SLIDE_DOWN_DURATION_MS = 1100L
     }
 }
