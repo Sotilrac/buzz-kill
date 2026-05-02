@@ -98,7 +98,6 @@ fun MainScreen(
             onEditEnd = { editing = TimeEdit.End },
             onSetInactivitySeconds = onSetInactivitySeconds,
         )
-        ScheduleNote()
         SetupPanel(
             state = state,
             onFixPermission = onFixPermission,
@@ -325,13 +324,16 @@ private fun SchedulePanel(
 ) {
     val persisted = state.persisted
     Panel(label = "schedule", modifier = Modifier.fillMaxWidth()) {
-        // Inputs left, armed switch + status text on the right.
+        // 1) Plain-language explanation at the top of the card.
+        ScheduleNote()
+        Spacer(Modifier.height(14.dp))
+
+        // 2) Inputs left, switch + status on the right.
         Row(
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            // IntrinsicSize.Max sizes the column to the widest child (the stepper).
             Column(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 horizontalAlignment = Alignment.Start,
@@ -353,34 +355,38 @@ private fun SchedulePanel(
                 )
             }
             Spacer(Modifier.width(16.dp))
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 LedSwitch(
                     isOn = persisted.enabled,
                     onToggle = { onToggleEnabled(!persisted.enabled) },
-                    label = null, // LED already says ARMED — don't repeat it.
+                    label = null,
                 )
+                ScheduleStatusText(state = state)
             }
         }
-        Spacer(Modifier.height(10.dp))
-        ScheduleStatusText(state = state)
     }
 }
 
 @Composable
 private fun ScheduleStatusText(state: UiState) {
+    // Short. The LED next to it already says armed-or-not; we just convey the
+    // useful next number.
     val text = when (val s = state.status) {
-        is StatusLine.NeedsSetup -> "Setup incomplete: ${s.missing.size} item${if (s.missing.size == 1) "" else "s"} pending."
-        is StatusLine.Disabled -> "Disabled. Toggle the switch to arm."
-        is StatusLine.Armed -> "Armed. Window opens in ${formatDuration(s.nextOpenMinutes * 60)}."
-        is StatusLine.Active -> "Active. ${formatDuration(s.minutesRemainingInWindow * 60)} remaining in window."
-        is StatusLine.Counting -> "Counting down. ${formatDuration(s.secondsRemaining)} until shutdown."
+        is StatusLine.NeedsSetup -> "set up first"
+        is StatusLine.Disabled -> "off"
+        is StatusLine.Armed -> "opens in\n${formatDuration(s.nextOpenMinutes * 60)}"
+        is StatusLine.Active -> "closes in\n${formatDuration(s.minutesRemainingInWindow * 60)}"
+        is StatusLine.Counting -> "killing in\n${formatDuration(s.secondsRemaining)}"
     }
     Text(
         text = text,
-        color = Color(0xFFCCBBAA),
+        color = Color(0xFF998877),
         fontFamily = FontFamily.Monospace,
-        fontSize = 12.sp,
-        modifier = Modifier.fillMaxWidth(),
+        fontSize = 11.sp,
+        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
     )
 }
 
@@ -458,13 +464,12 @@ private fun InactivityStepper(seconds: Int, onChange: (Int) -> Unit) {
 @Composable
 private fun ScheduleNote() {
     Text(
-        text = "Inside the window, if your screen stays off for the inactivity period, BuzzKill kills the phone. Use your OEM's scheduled power-on to bring it back in the morning.",
+        text = "Inside the window, if your screen stays off for the inactivity period, BuzzKill will power off the phone. Use your OEM's scheduled power-on to bring it back in the morning.",
         color = Color(0xFF998877),
         fontFamily = FontFamily.Monospace,
         fontSize = 11.sp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp),
+        lineHeight = 14.sp,
+        modifier = Modifier.fillMaxWidth(),
     )
 }
 
