@@ -9,4 +9,5 @@ object Broadcasts {
     const val WINDOW_CLOSE = "com.buzzkill.action.WINDOW_CLOSE"
     const val INACTIVITY_FIRED = "com.buzzkill.action.INACTIVITY_FIRED"
     const val TEST_TRIGGER_DRY_RUN = "com.buzzkill.action.TEST_TRIGGER_DRY_RUN"
+    const val TEST_TRIGGER_LIVE = "com.buzzkill.action.TEST_TRIGGER_LIVE"
 }

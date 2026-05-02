@@ -32,7 +32,8 @@ class ShutdownAccessibilityService : AccessibilityService() {
                 Broadcasts.WINDOW_OPEN -> onWindowOpen()
                 Broadcasts.WINDOW_CLOSE -> onWindowClose()
                 Broadcasts.INACTIVITY_FIRED -> onInactivityFired()
-                Broadcasts.TEST_TRIGGER_DRY_RUN -> onTestTrigger()
+                Broadcasts.TEST_TRIGGER_DRY_RUN -> onTestTrigger(dryRun = true)
+                Broadcasts.TEST_TRIGGER_LIVE -> onTestTrigger(dryRun = false)
             }
         }
     }
@@ -50,6 +51,7 @@ class ShutdownAccessibilityService : AccessibilityService() {
             addAction(Broadcasts.WINDOW_CLOSE)
             addAction(Broadcasts.INACTIVITY_FIRED)
             addAction(Broadcasts.TEST_TRIGGER_DRY_RUN)
+            addAction(Broadcasts.TEST_TRIGGER_LIVE)
         }
         registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
 
@@ -127,10 +129,10 @@ class ShutdownAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun onTestTrigger() {
-        Log.i(TAG, "test trigger (dry-run)")
+    private fun onTestTrigger(dryRun: Boolean) {
+        Log.i(TAG, "test trigger (dryRun=$dryRun)")
         scope.launch {
-            val result = PowerOffSequence(this@ShutdownAccessibilityService).run(dryRun = true)
+            val result = PowerOffSequence(this@ShutdownAccessibilityService).run(dryRun = dryRun)
             val msg = when (result) {
                 is PowerOffSequence.Result.DryRun ->
                     "Match: '${result.matchedText}' via ${result.mode}. Strings OK."

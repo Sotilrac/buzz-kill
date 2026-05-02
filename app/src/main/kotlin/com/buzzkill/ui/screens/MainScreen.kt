@@ -59,7 +59,8 @@ fun MainScreen(
     onSetWindow: (start: Int, end: Int) -> Unit,
     onSetInactivitySeconds: (Int) -> Unit,
     onFixPermission: (PermissionItem) -> Unit,
-    onTestTrigger: () -> Unit,
+    onTestTriggerDryRun: () -> Unit,
+    onTestTriggerLive: () -> Unit,
     onConfirmFirstShutdown: () -> Unit = {},
 ) {
     var editing by remember { mutableStateOf<TimeEdit?>(null) }
@@ -96,7 +97,10 @@ fun MainScreen(
             )
         }
         item {
-            TestTriggerPanel(onTrigger = onTestTrigger)
+            TestTriggerPanel(
+                onDryRun = onTestTriggerDryRun,
+                onLive = onTestTriggerLive,
+            )
         }
         item { Spacer(Modifier.height(24.dp)) }
     }
@@ -419,20 +423,25 @@ private fun RowScope.RowLabel(text: String) {
     )
 }
 
+private enum class TriggerMode { DryRun, Live }
+
 @Composable
-private fun TestTriggerPanel(onTrigger: () -> Unit) {
-    var counting by remember { mutableStateOf(false) }
+private fun TestTriggerPanel(onDryRun: () -> Unit, onLive: () -> Unit) {
+    var counting by remember { mutableStateOf<TriggerMode?>(null) }
     var remaining by remember { mutableStateOf(TEST_COUNTDOWN_SECONDS) }
 
-    if (counting) {
-        androidx.compose.runtime.LaunchedEffect(Unit) {
+    counting?.let { mode ->
+        androidx.compose.runtime.LaunchedEffect(mode) {
             while (remaining > 0) {
                 kotlinx.coroutines.delay(1000)
                 remaining -= 1
             }
-            if (counting) {
-                counting = false
-                onTrigger()
+            if (counting == mode) {
+                counting = null
+                when (mode) {
+                    TriggerMode.DryRun -> onDryRun()
+                    TriggerMode.Live -> onLive()
+                }
                 remaining = TEST_COUNTDOWN_SECONDS
             }
         }
@@ -444,44 +453,66 @@ private fun TestTriggerPanel(onTrigger: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
+            val caption = when (counting) {
+                null -> "Verify the shutdown mechanism. DRY RUN finds the target and stops; KILL actually powers off."
+                TriggerMode.DryRun -> "Dry run firing in..."
+                TriggerMode.Live -> "KILL firing in. Cancel to abort."
+            }
             Text(
-                text = "10s countdown, dry-run shutdown sequence (does not power off).",
-                color = Color(0xFF998877),
+                text = caption,
+                color = if (counting == TriggerMode.Live) Color(0xFFFF6644) else Color(0xFF998877),
                 fontFamily = FontFamily.Monospace,
                 fontSize = 11.sp,
             )
 
-            if (counting) {
+            if (counting != null) {
                 SevenSegmentDisplay(
                     text = formatMinutes(remaining),
                     digitWidth = 28.dp,
                     digitHeight = 48.dp,
-                    litColor = Color(0xFFFF4422),
+                    litColor = if (counting == TriggerMode.Live) Color(0xFFFF4422) else Color(0xFFFFAA22),
                 )
                 HardwareButton(
                     text = "cancel",
                     onClick = {
-                        counting = false
+                        counting = null
                         remaining = TEST_COUNTDOWN_SECONDS
                     },
                     contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
                 )
             } else {
-                HardwareButton(
-                    text = "TRIGGER",
-                    onClick = {
-                        remaining = TEST_COUNTDOWN_SECONDS
-                        counting = true
-                    },
-                    style = HardwareButtonStyle.Danger,
-                    contentPadding = PaddingValues(horizontal = 32.dp, vertical = 18.dp),
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    HardwareButton(
+                        text = "dry run",
+                        onClick = {
+                            remaining = TEST_COUNTDOWN_SECONDS
+                            counting = TriggerMode.DryRun
+                        },
+                        style = HardwareButtonStyle.Confirm,
+                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
+                        modifier = Modifier,
+                    )
+                    Spacer(Modifier.weight(1f))
+                    HardwareButton(
+                        text = "kill",
+                        onClick = {
+                            remaining = TEST_COUNTDOWN_SECONDS
+                            counting = TriggerMode.Live
+                        },
+                        style = HardwareButtonStyle.Danger,
+                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
+                        modifier = Modifier,
+                    )
+                }
             }
         }
     }
 }
 
-private const val TEST_COUNTDOWN_SECONDS = 10
+private const val TEST_COUNTDOWN_SECONDS = 5
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -566,7 +597,8 @@ private fun MainScreenPreview() {
             onSetWindow = { _, _ -> },
             onSetInactivitySeconds = {},
             onFixPermission = {},
-            onTestTrigger = {},
+            onTestTriggerDryRun = {},
+            onTestTriggerLive = {},
         )
     }
 }

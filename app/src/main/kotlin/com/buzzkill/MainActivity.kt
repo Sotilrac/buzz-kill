@@ -45,7 +45,8 @@ class MainActivity : ComponentActivity() {
                         onSetWindow = { s, e -> viewModel.setWindow(s, e) },
                         onSetInactivitySeconds = viewModel::setInactivitySeconds,
                         onFixPermission = ::onFixPermission,
-                        onTestTrigger = ::onTestTrigger,
+                        onTestTriggerDryRun = { sendTestTrigger(Broadcasts.TEST_TRIGGER_DRY_RUN) },
+                        onTestTriggerLive = { sendTestTrigger(Broadcasts.TEST_TRIGGER_LIVE) },
                         onConfirmFirstShutdown = { viewModel.setFirstShutdownConfirmed(true) },
                     )
                 }
@@ -97,13 +98,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun onTestTrigger() {
+    private fun sendTestTrigger(action: String) {
         if (!PermissionsHelper.isAccessibilityEnabled(this)) {
             Toast.makeText(this, "Enable the accessibility service first.", Toast.LENGTH_SHORT).show()
             return
         }
-        sendBroadcast(
-            Intent(Broadcasts.TEST_TRIGGER_DRY_RUN).setPackage(packageName),
-        )
+        sendBroadcast(Intent(action).setPackage(packageName))
     }
 }
