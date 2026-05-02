@@ -1,9 +1,5 @@
 package com.buzzkill.ui.screens
 
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.keyframes
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -206,76 +202,106 @@ private fun Header() {
 
 @Composable
 private fun NeonTitle() {
-    val infinite = androidx.compose.animation.core.rememberInfiniteTransition(label = "killFlicker")
-    // Long mostly-on cycle with two brief dips, simulating tube-warmup flicker.
-    val flicker by infinite.animateFloat(
-        initialValue = 1f,
-        targetValue = 1f,
-        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-            animation = androidx.compose.animation.core.keyframes {
-                durationMillis = 7000
-                1f at 0
-                1f at 4500
-                0.55f at 4540
-                1f at 4600
-                1f at 5800
-                0.7f at 5830
-                1f at 5870
-                1f at 7000
-            },
-        ),
-        label = "killFlickerAlpha",
-    )
-
     Row(verticalAlignment = Alignment.Bottom) {
-        Text(
+        NeonText(
             text = "BUZZ",
-            color = Color(0xFFFFAA22),
-            fontFamily = TiltNeonFamily,
-            fontSize = 44.sp,
-            letterSpacing = 2.sp,
+            glowColor = Color(0xFFFFAA22),
+            coreColor = Color(0xFFFFF6E0),
+            flicker = false,
         )
         NeonText(
             text = "KILL",
-            baseColor = Color(0xFFFF3322),
-            alpha = flicker,
+            glowColor = Color(0xFFFF3322),
+            coreColor = Color(0xFFFFE4DC),
+            flicker = true,
+        )
+    }
+}
+
+/**
+ * CSS-style neon text. Several blurred copies of the glyph in the neon colour are
+ * stacked behind a bright near-white core, mimicking the "filled gas tube"
+ * appearance: the fill reads as white-hot while the colour radiates outward.
+ *
+ * The optional [flicker] runs an irregular drop pattern (sometimes one quick dip,
+ * sometimes two in rapid succession) at random intervals. Both the gap and the
+ * dip pattern are re-rolled each cycle so it never settles into a loop.
+ */
+@Composable
+private fun NeonText(
+    text: String,
+    glowColor: Color,
+    coreColor: Color,
+    flicker: Boolean,
+) {
+    val alpha by rememberFlickerAlpha(flicker)
+    val style = androidx.compose.ui.text.TextStyle(
+        fontFamily = TiltNeonFamily,
+        fontSize = 44.sp,
+        letterSpacing = 2.sp,
+    )
+
+    Box {
+        // Outermost bloom.
+        Text(
+            text = text,
+            color = glowColor.copy(alpha = 0.40f * alpha),
+            style = style,
+            modifier = Modifier.blur(24.dp, BlurredEdgeTreatment.Unbounded),
+        )
+        // Wide halo.
+        Text(
+            text = text,
+            color = glowColor.copy(alpha = 0.60f * alpha),
+            style = style,
+            modifier = Modifier.blur(14.dp, BlurredEdgeTreatment.Unbounded),
+        )
+        // Inner halo.
+        Text(
+            text = text,
+            color = glowColor.copy(alpha = 0.85f * alpha),
+            style = style,
+            modifier = Modifier.blur(6.dp, BlurredEdgeTreatment.Unbounded),
+        )
+        // Tight aura just outside the stroke, gives the bright fringe.
+        Text(
+            text = text,
+            color = glowColor.copy(alpha = 0.95f * alpha),
+            style = style,
+            modifier = Modifier.blur(2.dp, BlurredEdgeTreatment.Unbounded),
+        )
+        // White-hot core.
+        Text(
+            text = text,
+            color = coreColor.copy(alpha = alpha),
+            style = style,
         )
     }
 }
 
 @Composable
-private fun NeonText(text: String, baseColor: Color, alpha: Float) {
-    val core = baseColor.copy(alpha = (1f * alpha).coerceIn(0f, 1f))
-    val mid = baseColor.copy(alpha = (0.85f * alpha).coerceIn(0f, 1f))
-    val outer = baseColor.copy(alpha = (0.55f * alpha).coerceIn(0f, 1f))
-    Box {
-        // Outer halo, large blur.
-        Text(
-            text = text,
-            color = outer,
-            fontFamily = TiltNeonFamily,
-            fontSize = 44.sp,
-            letterSpacing = 2.sp,
-            modifier = Modifier.blur(16.dp, BlurredEdgeTreatment.Unbounded),
-        )
-        // Mid glow.
-        Text(
-            text = text,
-            color = mid,
-            fontFamily = TiltNeonFamily,
-            fontSize = 44.sp,
-            letterSpacing = 2.sp,
-            modifier = Modifier.blur(6.dp, BlurredEdgeTreatment.Unbounded),
-        )
-        // Bright core.
-        Text(
-            text = text,
-            color = core,
-            fontFamily = TiltNeonFamily,
-            fontSize = 44.sp,
-            letterSpacing = 2.sp,
-        )
+private fun rememberFlickerAlpha(enabled: Boolean): androidx.compose.runtime.State<Float> {
+    val alpha = remember { androidx.compose.runtime.mutableFloatStateOf(1f) }
+    androidx.compose.runtime.LaunchedEffect(enabled) {
+        if (!enabled) {
+            alpha.floatValue = 1f
+            return@LaunchedEffect
+        }
+        val rng = kotlin.random.Random(System.nanoTime())
+        while (true) {
+            // Idle gap before next flicker. Mean ~6 s, jittered.
+            kotlinx.coroutines.delay(rng.nextLong(4500L, 8500L))
+            // 1 dip about half the time, 2 rapid dips otherwise.
+            val flickers = if (rng.nextFloat() < 0.5f) 1 else 2
+            repeat(flickers) { i ->
+                alpha.floatValue = 0.35f + rng.nextFloat() * 0.30f
+                kotlinx.coroutines.delay(rng.nextLong(30L, 70L))
+                alpha.floatValue = 1f
+                if (i < flickers - 1) kotlinx.coroutines.delay(rng.nextLong(60L, 140L))
+            }
+        }
     }
+    return alpha
 }
 
 @Composable
