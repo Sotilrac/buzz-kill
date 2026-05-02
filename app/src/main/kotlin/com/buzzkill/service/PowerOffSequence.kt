@@ -110,10 +110,12 @@ class PowerOffSequence(private val service: AccessibilityService) {
         val h = metrics.heightPixels
 
         val centerX = w / 2f
-        // Fingers spread ~80 dp apart; clamp to a reasonable absolute pixel range.
-        val spread = (w * 0.10f).coerceIn(60f, 200f)
-        val topY = h * 0.30f
-        val bottomY = h * 0.80f
+        // Fingers ~10% of screen width apart, clamped to a reasonable pixel range.
+        val spread = (w * 0.10f).coerceIn(80f, 160f)
+        // Long, slow, decisive swipe — start near the vertical centre, end near the
+        // bottom. OxygenOS slide-to-power-off needs a deliberate motion to engage.
+        val topY = h * 0.35f
+        val bottomY = h * 0.92f
 
         val path1 = Path().apply {
             moveTo(centerX - spread, topY)
@@ -123,7 +125,7 @@ class PowerOffSequence(private val service: AccessibilityService) {
             moveTo(centerX + spread, topY)
             lineTo(centerX + spread, bottomY)
         }
-        Log.i(TAG, "two-finger swipe down: from y=$topY to y=$bottomY, spread=$spread, w=$w h=$h")
+        Log.i(TAG, "two-finger swipe down: y=$topY→$bottomY, spread=$spread, w=$w h=$h, duration=${TWO_FINGER_DURATION_MS}ms")
 
         val gesture = GestureDescription.Builder()
             .addStroke(GestureDescription.StrokeDescription(path1, 0L, TWO_FINGER_DURATION_MS))
@@ -134,15 +136,19 @@ class PowerOffSequence(private val service: AccessibilityService) {
             val handler = Handler(Looper.getMainLooper())
             val callback = object : AccessibilityService.GestureResultCallback() {
                 override fun onCompleted(g: GestureDescription?) {
+                    Log.i(TAG, "two-finger swipe completed")
                     if (cont.isActive) cont.resume(true)
                 }
                 override fun onCancelled(g: GestureDescription?) {
-                    Log.w(TAG, "two-finger swipe cancelled")
+                    Log.w(TAG, "two-finger swipe cancelled by system")
                     if (cont.isActive) cont.resume(false)
                 }
             }
             val dispatched = service.dispatchGesture(gesture, callback, handler)
-            if (!dispatched && cont.isActive) cont.resume(false)
+            if (!dispatched) {
+                Log.w(TAG, "dispatchGesture returned false (refused)")
+                if (cont.isActive) cont.resume(false)
+            }
         }
     }
 
@@ -242,9 +248,9 @@ class PowerOffSequence(private val service: AccessibilityService) {
 
     companion object {
         private const val TAG = "BuzzKill.poweroff"
-        private const val POST_DIALOG_DELAY_MS = 500L
+        private const val POST_DIALOG_DELAY_MS = 800L
         private const val POST_TAP_DELAY_MS = 400L
         private const val SWIPE_DURATION_MS = 400L
-        private const val TWO_FINGER_DURATION_MS = 600L
+        private const val TWO_FINGER_DURATION_MS = 1100L
     }
 }
