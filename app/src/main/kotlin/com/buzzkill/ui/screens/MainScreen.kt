@@ -335,10 +335,27 @@ private fun RowScope.RowLabel(text: String) {
 
 @Composable
 private fun TestTriggerPanel(onTrigger: () -> Unit) {
+    var counting by remember { mutableStateOf(false) }
+    var remaining by remember { mutableStateOf(TEST_COUNTDOWN_SECONDS) }
+
+    if (counting) {
+        androidx.compose.runtime.LaunchedEffect(Unit) {
+            while (remaining > 0) {
+                kotlinx.coroutines.delay(1000)
+                remaining -= 1
+            }
+            if (counting) {
+                counting = false
+                onTrigger()
+                remaining = TEST_COUNTDOWN_SECONDS
+            }
+        }
+    }
+
     Panel(label = "test trigger", modifier = Modifier.fillMaxWidth()) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(
@@ -347,15 +364,38 @@ private fun TestTriggerPanel(onTrigger: () -> Unit) {
                 fontFamily = FontFamily.Monospace,
                 fontSize = 11.sp,
             )
-            HardwareButton(
-                text = "TRIGGER",
-                onClick = onTrigger,
-                style = HardwareButtonStyle.Danger,
-                contentPadding = PaddingValues(horizontal = 32.dp, vertical = 18.dp),
-            )
+
+            if (counting) {
+                SevenSegmentDisplay(
+                    text = formatMinutes(remaining),
+                    digitWidth = 28.dp,
+                    digitHeight = 48.dp,
+                    litColor = Color(0xFFFF4422),
+                )
+                HardwareButton(
+                    text = "cancel",
+                    onClick = {
+                        counting = false
+                        remaining = TEST_COUNTDOWN_SECONDS
+                    },
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+                )
+            } else {
+                HardwareButton(
+                    text = "TRIGGER",
+                    onClick = {
+                        remaining = TEST_COUNTDOWN_SECONDS
+                        counting = true
+                    },
+                    style = HardwareButtonStyle.Danger,
+                    contentPadding = PaddingValues(horizontal = 32.dp, vertical = 18.dp),
+                )
+            }
         }
     }
 }
+
+private const val TEST_COUNTDOWN_SECONDS = 10
 
 @Composable
 private fun TimeEditDialog(

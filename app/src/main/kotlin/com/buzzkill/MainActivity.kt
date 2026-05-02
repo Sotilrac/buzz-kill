@@ -15,7 +15,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import android.content.Intent
 import com.buzzkill.oem.ScheduledPowerOnIntents
+import com.buzzkill.service.Broadcasts
 import com.buzzkill.ui.screens.MainScreen
 import com.buzzkill.ui.screens.PermissionItem
 import com.buzzkill.ui.theme.BuzzKillTheme
@@ -95,6 +97,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun onTestTrigger() {
-        Toast.makeText(this, "Test trigger: not yet wired (phase 9)", Toast.LENGTH_SHORT).show()
+        if (!PermissionsHelper.isAccessibilityEnabled(this)) {
+            Toast.makeText(this, "Enable the accessibility service first.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        sendBroadcast(
+            Intent(Broadcasts.TEST_TRIGGER_DRY_RUN).setPackage(packageName),
+        )
     }
 }
