@@ -102,10 +102,8 @@ fun MainScreen(
             state = state,
             onFixPermission = onFixPermission,
             onTogglePermissionAck = onTogglePermissionAck,
-        )
-        TestTriggerPanel(
-            onDryRun = onTestTriggerDryRun,
-            onLive = onTestTriggerLive,
+            onTestTriggerDryRun = onTestTriggerDryRun,
+            onTestTriggerLive = onTestTriggerLive,
         )
         Spacer(Modifier.height(8.dp))
     }
@@ -478,6 +476,8 @@ private fun SetupPanel(
     state: UiState,
     onFixPermission: (PermissionItem) -> Unit,
     onTogglePermissionAck: (PermissionItem) -> Unit,
+    onTestTriggerDryRun: () -> Unit,
+    onTestTriggerLive: () -> Unit,
 ) {
     val pending = state.permissions.missingItems.size
     // Default-expanded while anything is missing; collapsed once everything is set.
@@ -496,6 +496,11 @@ private fun SetupPanel(
     ) {
         if (expanded) {
             ChecklistView(state.permissions, onFixPermission, onTogglePermissionAck)
+            Spacer(Modifier.height(16.dp))
+            TestTriggerSection(
+                onDryRun = onTestTriggerDryRun,
+                onLive = onTestTriggerLive,
+            )
         }
     }
 }
@@ -601,7 +606,7 @@ private fun RowScope.RowLabel(text: String) {
 private enum class TriggerMode { DryRun, Live }
 
 @Composable
-private fun TestTriggerPanel(onDryRun: () -> Unit, onLive: () -> Unit) {
+private fun TestTriggerSection(onDryRun: () -> Unit, onLive: () -> Unit) {
     var counting by remember { mutableStateOf<TriggerMode?>(null) }
     var remaining by remember { mutableStateOf(TEST_COUNTDOWN_SECONDS) }
 
@@ -622,66 +627,73 @@ private fun TestTriggerPanel(onDryRun: () -> Unit, onLive: () -> Unit) {
         }
     }
 
-    Panel(label = "test trigger", modifier = Modifier.fillMaxWidth()) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            val caption = when (counting) {
-                null -> "Verify the shutdown mechanism. DRY RUN finds the target and stops; KILL actually powers off."
-                TriggerMode.DryRun -> "Dry run firing in..."
-                TriggerMode.Live -> "KILL firing in. Cancel to abort."
-            }
-            Text(
-                text = caption,
-                color = if (counting == TriggerMode.Live) Color(0xFFFF6644) else Color(0xFF998877),
-                fontFamily = FontFamily.Monospace,
-                fontSize = 11.sp,
-            )
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = "TEST TRIGGER",
+            color = Color(0xFF665544),
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold,
+            fontSize = 10.sp,
+            letterSpacing = 2.sp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+        )
+        val caption = when (counting) {
+            null -> "Verify the shutdown mechanism. DRY RUN finds the target and stops; KILL actually powers off."
+            TriggerMode.DryRun -> "Dry run firing in..."
+            TriggerMode.Live -> "KILL firing in. Cancel to abort."
+        }
+        Text(
+            text = caption,
+            color = if (counting == TriggerMode.Live) Color(0xFFFF6644) else Color(0xFF998877),
+            fontFamily = FontFamily.Monospace,
+            fontSize = 11.sp,
+        )
 
-            if (counting != null) {
-                SevenSegmentDisplay(
-                    text = formatMinutes(remaining),
-                    digitWidth = 28.dp,
-                    digitHeight = 48.dp,
-                    litColor = if (counting == TriggerMode.Live) Color(0xFFFF4422) else Color(0xFFFFAA22),
-                )
+        if (counting != null) {
+            SevenSegmentDisplay(
+                text = formatMinutes(remaining),
+                digitWidth = 28.dp,
+                digitHeight = 48.dp,
+                litColor = if (counting == TriggerMode.Live) Color(0xFFFF4422) else Color(0xFFFFAA22),
+            )
+            HardwareButton(
+                text = "cancel",
+                onClick = {
+                    counting = null
+                    remaining = TEST_COUNTDOWN_SECONDS
+                },
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+            )
+        } else {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 HardwareButton(
-                    text = "cancel",
+                    text = "dry run",
                     onClick = {
-                        counting = null
                         remaining = TEST_COUNTDOWN_SECONDS
+                        counting = TriggerMode.DryRun
                     },
-                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+                    style = HardwareButtonStyle.Confirm,
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
                 )
-            } else {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    HardwareButton(
-                        text = "dry run",
-                        onClick = {
-                            remaining = TEST_COUNTDOWN_SECONDS
-                            counting = TriggerMode.DryRun
-                        },
-                        style = HardwareButtonStyle.Confirm,
-                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
-                        modifier = Modifier,
-                    )
-                    Spacer(Modifier.weight(1f))
-                    HardwareButton(
-                        text = "kill",
-                        onClick = {
-                            remaining = TEST_COUNTDOWN_SECONDS
-                            counting = TriggerMode.Live
-                        },
-                        style = HardwareButtonStyle.Danger,
-                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
-                        modifier = Modifier,
-                    )
-                }
+                Spacer(Modifier.weight(1f))
+                HardwareButton(
+                    text = "kill",
+                    onClick = {
+                        remaining = TEST_COUNTDOWN_SECONDS
+                        counting = TriggerMode.Live
+                    },
+                    style = HardwareButtonStyle.Danger,
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
+                )
             }
         }
     }
