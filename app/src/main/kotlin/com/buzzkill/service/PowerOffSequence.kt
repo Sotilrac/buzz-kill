@@ -35,35 +35,35 @@ class PowerOffSequence(private val service: AccessibilityService) {
         val primaryTargets = (strings.primaryActions + PowerDialogStrings.allKnownPrimary).distinct()
 
         val visited = mutableListOf<String>()
-        val match = findClickableMatching(service.rootInActiveWindow, primaryTargets, visited)
+        val hit = findClickableMatching(service.rootInActiveWindow, primaryTargets, visited)
             ?: return Result.NotFound(visited)
 
-        val matchedText = match.text?.toString() ?: match.contentDescription?.toString() ?: "<unknown>"
-
         if (dryRun) {
-            match.recycleSafely()
-            return Result.DryRun(matchedText)
+            hit.clickable.recycleSafely()
+            return Result.DryRun(hit.matchedText)
         }
 
-        val clicked = match.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-        match.recycleSafely()
-        if (!clicked) return Result.NotFound(listOf("primary node found but ACTION_CLICK failed: '$matchedText'"))
+        val clicked = hit.clickable.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+        hit.clickable.recycleSafely()
+        if (!clicked) return Result.NotFound(listOf("primary node found but ACTION_CLICK failed: '${hit.matchedText}'"))
 
         // Confirmation dialog (if any). Best-effort: walk again, tap any matching button.
         delay(POST_TAP_DELAY_MS)
         val confirmTargets = (strings.confirmActions + PowerDialogStrings.allKnownConfirm).distinct()
-        val confirmNode = findClickableMatching(service.rootInActiveWindow, confirmTargets, mutableListOf())
-        confirmNode?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-        confirmNode?.recycleSafely()
+        val confirmHit = findClickableMatching(service.rootInActiveWindow, confirmTargets, mutableListOf())
+        confirmHit?.clickable?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+        confirmHit?.clickable?.recycleSafely()
 
-        return Result.Triggered(matchedText)
+        return Result.Triggered(hit.matchedText)
     }
+
+    private data class Hit(val clickable: AccessibilityNodeInfo, val matchedText: String)
 
     private fun findClickableMatching(
         root: AccessibilityNodeInfo?,
         targets: List<String>,
         visited: MutableList<String>,
-    ): AccessibilityNodeInfo? {
+    ): Hit? {
         if (root == null) return null
         val targetSet = targets.map { it.lowercase().trim() }.toSet()
         return walk(root, targetSet, visited)
@@ -73,26 +73,36 @@ class PowerOffSequence(private val service: AccessibilityService) {
         node: AccessibilityNodeInfo,
         targets: Set<String>,
         visited: MutableList<String>,
-    ): AccessibilityNodeInfo? {
-        val text = node.text?.toString()?.trim()?.lowercase()
-        val desc = node.contentDescription?.toString()?.trim()?.lowercase()
-        if (!text.isNullOrEmpty()) visited += text
-        if (!desc.isNullOrEmpty() && desc != text) visited += desc
+    ): Hit? {
+        val text = node.text?.toString()?.trim()
+        val desc = node.contentDescription?.toString()?.trim()
+        val textLc = text?.lowercase()
+        val descLc = desc?.lowercase()
+        if (!textLc.isNullOrEmpty()) visited += textLc
+        if (!descLc.isNullOrEmpty() && descLc != textLc) visited += descLc
 
-        if ((text != null && text in targets) || (desc != null && desc in targets)) {
-            // Walk up to a clickable ancestor if needed (the text may live on a child label).
+        val matched: String? = when {
+            !textLc.isNullOrEmpty() && textLc in targets -> text
+            !descLc.isNullOrEmpty() && descLc in targets -> desc
+            else -> null
+        }
+
+        if (matched != null) {
+            // The matched text often lives on a label whose parent is the clickable
+            // button. Walk up to find the clickable, but keep the child's text as
+            // the "matched" display string.
             var clickable: AccessibilityNodeInfo? = node
             while (clickable != null && !clickable.isClickable) {
                 clickable = clickable.parent
             }
-            if (clickable != null) return clickable
-            if (node.isClickable) return node
+            val target = clickable ?: node.takeIf { it.isClickable }
+            if (target != null) return Hit(target, matched)
         }
 
         for (i in 0 until node.childCount) {
             val child = node.getChild(i) ?: continue
-            val hit = walk(child, targets, visited)
-            if (hit != null) return hit
+            val h = walk(child, targets, visited)
+            if (h != null) return h
         }
         return null
     }
