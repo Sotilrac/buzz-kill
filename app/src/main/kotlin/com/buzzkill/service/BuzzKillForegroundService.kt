@@ -37,16 +37,25 @@ class BuzzKillForegroundService : Service() {
     private fun startInForeground() {
         ensureChannel()
         val notif = buildNotification()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(
-                NOTIF_ID,
-                notif,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
-            )
-        } else {
-            startForeground(NOTIF_ID, notif)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(
+                    NOTIF_ID,
+                    notif,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+                )
+            } else {
+                startForeground(NOTIF_ID, notif)
+            }
+            Log.i(TAG, "foreground service started")
+        } catch (t: Throwable) {
+            // ForegroundServiceStartNotAllowedException, MissingForegroundServiceTypeException,
+            // SecurityException — all can land here on newer Android / preview builds. Don't
+            // crash the process; the timer logic in the accessibility service still works
+            // without an FGS, just with worse OS-retention guarantees.
+            Log.w(TAG, "FGS start failed; continuing without foreground notification", t)
+            stopSelf()
         }
-        Log.i(TAG, "foreground service started")
     }
 
     private fun ensureChannel() {

@@ -103,7 +103,9 @@ class SettingsRepository(private val context: Context) {
     companion object {
         const val DEFAULT_WINDOW_START = 23 * 60         // 23:00
         const val DEFAULT_WINDOW_END = 7 * 60            // 07:00
-        const val DEFAULT_INACTIVITY = 30 * 60           // 30 min
+        const val DEFAULT_INACTIVITY = 5 * 60            // 5 min
+        const val MIN_INACTIVITY_MINUTES = 1
+        const val MAX_INACTIVITY_MINUTES = 15
     }
 }
 

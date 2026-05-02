@@ -205,33 +205,44 @@ private fun SchedulePanel(
     onSetInactivitySeconds: (Int) -> Unit,
 ) {
     Panel(label = "schedule", modifier = Modifier.fillMaxWidth()) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(20.dp),
+        Column(
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            LedSwitch(
-                isOn = persisted.enabled,
-                onToggle = { onToggleEnabled(!persisted.enabled) },
-                label = "armed",
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                LabeledTime(
-                    label = "window open",
-                    minutes = persisted.windowStartMinutes,
-                    onClick = onEditStart,
+            // Row 1: armed switch + window times.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                LedSwitch(
+                    isOn = persisted.enabled,
+                    onToggle = { onToggleEnabled(!persisted.enabled) },
+                    label = "armed",
                 )
-                LabeledTime(
-                    label = "window close",
-                    minutes = persisted.windowEndMinutes,
-                    onClick = onEditEnd,
-                )
+                Spacer(Modifier.width(16.dp))
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalAlignment = Alignment.End,
+                ) {
+                    LabeledTime(
+                        label = "window open",
+                        minutes = persisted.windowStartMinutes,
+                        onClick = onEditStart,
+                    )
+                    LabeledTime(
+                        label = "window close",
+                        minutes = persisted.windowEndMinutes,
+                        onClick = onEditEnd,
+                    )
+                }
             }
+            // Row 2: inactivity stepper, full width.
+            InactivityRow(
+                seconds = persisted.inactivityTimeoutSeconds,
+                onChange = onSetInactivitySeconds,
+            )
         }
-        Spacer(Modifier.height(14.dp))
-        InactivityRow(
-            seconds = persisted.inactivityTimeoutSeconds,
-            onChange = onSetInactivitySeconds,
-        )
     }
 }
 
@@ -239,6 +250,7 @@ private fun SchedulePanel(
 private fun LabeledTime(label: String, minutes: Int, onClick: () -> Unit) {
     Column(
         verticalArrangement = Arrangement.spacedBy(2.dp),
+        horizontalAlignment = Alignment.End,
         modifier = Modifier.clickable(onClick = onClick),
     ) {
         Text(
@@ -250,8 +262,8 @@ private fun LabeledTime(label: String, minutes: Int, onClick: () -> Unit) {
         )
         SevenSegmentDisplay(
             text = formatHHMM(minutes),
-            digitWidth = 22.dp,
-            digitHeight = 36.dp,
+            digitWidth = 18.dp,
+            digitHeight = 30.dp,
         )
     }
 }
@@ -259,7 +271,10 @@ private fun LabeledTime(label: String, minutes: Int, onClick: () -> Unit) {
 @Composable
 private fun InactivityRow(seconds: Int, onChange: (Int) -> Unit) {
     val minutes = seconds / 60
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         Text(
             text = "INACTIVITY TIMEOUT",
             color = Color(0xFF665544),
@@ -269,13 +284,18 @@ private fun InactivityRow(seconds: Int, onChange: (Int) -> Unit) {
         )
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth(),
         ) {
             HardwareButton(
                 text = "-",
-                onClick = { onChange(((minutes - 1).coerceAtLeast(1)) * 60) },
-                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                onClick = {
+                    val next = (minutes - 1).coerceAtLeast(SettingsRepository.MIN_INACTIVITY_MINUTES)
+                    onChange(next * 60)
+                },
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
             )
+            Spacer(Modifier.weight(1f))
             SevenSegmentDisplay(
                 text = formatMinutes(minutes),
                 digitWidth = 22.dp,
@@ -288,10 +308,14 @@ private fun InactivityRow(seconds: Int, onChange: (Int) -> Unit) {
                 fontSize = 11.sp,
                 letterSpacing = 2.sp,
             )
+            Spacer(Modifier.weight(1f))
             HardwareButton(
                 text = "+",
-                onClick = { onChange(((minutes + 1).coerceAtMost(180)) * 60) },
-                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                onClick = {
+                    val next = (minutes + 1).coerceAtMost(SettingsRepository.MAX_INACTIVITY_MINUTES)
+                    onChange(next * 60)
+                },
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
             )
         }
     }

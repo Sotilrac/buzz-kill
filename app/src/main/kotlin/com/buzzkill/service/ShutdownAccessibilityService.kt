@@ -118,8 +118,12 @@ class ShutdownAccessibilityService : AccessibilityService() {
             }
             repo.recordTriggered(System.currentTimeMillis())
 
-            val result = PowerOffSequence(this@ShutdownAccessibilityService).run(dryRun = false)
-            Log.i(TAG, "shutdown sequence result: $result")
+            // Safety: refuse to actually power off on the emulator. The dry-run is enough
+            // to verify the dialog matching; we don't want a runaway test session to keep
+            // rebooting the emulator.
+            val onEmulator = com.buzzkill.oem.OemDetector.isEmulator
+            val result = PowerOffSequence(this@ShutdownAccessibilityService).run(dryRun = onEmulator)
+            Log.i(TAG, "shutdown sequence result (emulator=$onEmulator): $result")
         }
     }
 
