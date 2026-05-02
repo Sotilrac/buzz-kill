@@ -1,10 +1,13 @@
 package com.buzzkill
 
+import android.Manifest
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
@@ -12,12 +15,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.buzzkill.oem.ScheduledPowerOnIntents
 import com.buzzkill.ui.screens.MainScreen
 import com.buzzkill.ui.screens.PermissionItem
 import com.buzzkill.ui.theme.BuzzKillTheme
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
+
+    private val notificationsLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { _ -> refreshPermissions() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,20 +52,49 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Phase 5 will compute these from system state. For now, leave defaults.
+        refreshPermissions()
+    }
+
+    private fun refreshPermissions() {
+        viewModel.refreshPermissions(
+            accessibilityEnabled = PermissionsHelper.isAccessibilityEnabled(this),
+            batteryOptimizationExempt = PermissionsHelper.isBatteryOptimizationExempt(this),
+            notificationsGranted = PermissionsHelper.isNotificationsGranted(this),
+        )
     }
 
     private fun onFixPermission(item: PermissionItem) {
-        // Wired in Phase 5. For now, ack-only items can be confirmed here.
         when (item) {
-            PermissionItem.ScheduledPowerOn -> viewModel.setScheduledPowerOnAcked(true)
-            PermissionItem.OemKiller -> viewModel.setOemKillerAcked(true)
-            else -> Toast.makeText(this, "Phase 5: deep-link not wired yet", Toast.LENGTH_SHORT).show()
+            PermissionItem.Accessibility -> PermissionsHelper.openAccessibilitySettings(this)
+            PermissionItem.Battery -> PermissionsHelper.requestBatteryOptimizationExempt(this)
+            PermissionItem.Notifications -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    notificationsLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+            PermissionItem.ScheduledPowerOn -> {
+                val launched = ScheduledPowerOnIntents.launch(this)
+                if (!launched) {
+                    Toast.makeText(
+                        this,
+                        "Open Settings → Additional settings → Scheduled power on/off",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
+                viewModel.setScheduledPowerOnAcked(true)
+            }
+            PermissionItem.OemKiller -> {
+                Toast.makeText(
+                    this,
+                    "See dontkillmyapp.com/oneplus and lock BuzzKill in Recents.",
+                    Toast.LENGTH_LONG,
+                ).show()
+                viewModel.setOemKillerAcked(true)
+            }
         }
     }
 
     private fun onTestTrigger() {
-        // Phase 9 will run the dry-run shutdown sequence here.
         Toast.makeText(this, "Test trigger: not yet wired (phase 9)", Toast.LENGTH_SHORT).show()
     }
 }

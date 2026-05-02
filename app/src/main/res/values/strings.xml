@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">BuzzKill</string>
+    <string name="accessibility_service_description">BuzzKill needs the accessibility service to open the system power dialog and tap "Power off" when the inactivity timer fires inside your sleep window. It does not read screen content for any other purpose.</string>
+    <string name="accessibility_service_summary">Powers off the phone after inactivity</string>
 </resources>
