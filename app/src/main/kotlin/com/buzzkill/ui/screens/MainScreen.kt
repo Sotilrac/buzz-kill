@@ -59,8 +59,10 @@ fun MainScreen(
     onSetInactivitySeconds: (Int) -> Unit,
     onFixPermission: (PermissionItem) -> Unit,
     onTestTrigger: () -> Unit,
+    onConfirmFirstShutdown: () -> Unit = {},
 ) {
     var editing by remember { mutableStateOf<TimeEdit?>(null) }
+    var pendingEnable by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier
@@ -74,7 +76,13 @@ fun MainScreen(
         item {
             SchedulePanel(
                 persisted = state.persisted,
-                onToggleEnabled = onToggleEnabled,
+                onToggleEnabled = { newValue ->
+                    if (newValue && !state.persisted.firstShutdownConfirmed) {
+                        pendingEnable = true
+                    } else {
+                        onToggleEnabled(newValue)
+                    }
+                },
                 onEditStart = { editing = TimeEdit.Start },
                 onEditEnd = { editing = TimeEdit.End },
                 onSetInactivitySeconds = onSetInactivitySeconds,
@@ -109,6 +117,59 @@ fun MainScreen(
                 editing = null
             },
         )
+    }
+
+    if (pendingEnable) {
+        FirstShutdownDialog(
+            onConfirm = {
+                pendingEnable = false
+                onConfirmFirstShutdown()
+                onToggleEnabled(true)
+            },
+            onDismiss = { pendingEnable = false },
+        )
+    }
+}
+
+@Composable
+private fun FirstShutdownDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0xFF14110D))
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = "BEFORE WE BEGIN",
+                color = Color(0xFFFFAA22),
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+                letterSpacing = 2.sp,
+            )
+            Text(
+                text = "Once the timer fires, the phone will fully power off. " +
+                    "It will not turn back on by itself unless you've configured the OEM " +
+                    "scheduled power-on. Make sure you've set that and that anything " +
+                    "time-sensitive (alarms in another app, on-call rotations) accounts for it.",
+                color = Color(0xFFCCBBAA),
+                fontFamily = FontFamily.Monospace,
+                fontSize = 13.sp,
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                HardwareButton(text = "cancel", onClick = onDismiss)
+                HardwareButton(
+                    text = "i understand",
+                    onClick = onConfirm,
+                    style = HardwareButtonStyle.Confirm,
+                )
+            }
+        }
     }
 }
 

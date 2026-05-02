@@ -43,6 +43,15 @@
         </receiver>
 
         <service
+            android:name=".service.BuzzKillForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Keeps the inactivity-driven shutdown timer alive across screen-off so the phone can be powered off on schedule." />
+        </service>
+
+        <service
             android:name=".service.ShutdownAccessibilityService"
             android:exported="false"
             android:label="@string/app_name"

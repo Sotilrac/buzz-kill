@@ -93,6 +93,7 @@ class ShutdownAccessibilityService : AccessibilityService() {
     private fun onWindowOpen() {
         Log.i(TAG, "window open")
         scope.launch { repo.setStatus(isInWindow = true) }
+        BuzzKillForegroundService.start(applicationContext)
     }
 
     private fun onWindowClose() {
@@ -102,6 +103,7 @@ class ShutdownAccessibilityService : AccessibilityService() {
             repo.setStatus(isInWindow = false)
             repo.setCountdownStartedAt(null)
         }
+        BuzzKillForegroundService.stop(applicationContext)
     }
 
     private fun onInactivityFired() {

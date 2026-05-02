@@ -78,6 +78,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun setInactivitySeconds(s: Int) = viewModelScope.launch { repo.setInactivityTimeoutSeconds(s) }
     fun setScheduledPowerOnAcked(b: Boolean) = viewModelScope.launch { repo.setScheduledPowerOnAcked(b) }
     fun setOemKillerAcked(b: Boolean) = viewModelScope.launch { repo.setOemKillerAcked(b) }
+    fun setFirstShutdownConfirmed(b: Boolean) = viewModelScope.launch { repo.setFirstShutdownConfirmed(b) }
 
     private fun defaultPersisted() = PersistedState(
         windowStartMinutes = SettingsRepository.DEFAULT_WINDOW_START,

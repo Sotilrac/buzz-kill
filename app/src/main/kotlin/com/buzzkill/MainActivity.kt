@@ -46,6 +46,7 @@ class MainActivity : ComponentActivity() {
                         onSetInactivitySeconds = viewModel::setInactivitySeconds,
                         onFixPermission = ::onFixPermission,
                         onTestTrigger = ::onTestTrigger,
+                        onConfirmFirstShutdown = { viewModel.setFirstShutdownConfirmed(true) },
                     )
                 }
             }
