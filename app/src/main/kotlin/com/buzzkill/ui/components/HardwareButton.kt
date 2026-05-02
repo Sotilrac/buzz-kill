@@ -9,7 +9,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +31,83 @@ import androidx.compose.ui.unit.sp
 import com.buzzkill.ui.theme.BuzzKillTheme
 
 enum class HardwareButtonStyle { Neutral, Danger, Confirm }
+
+/**
+ * Circular push-button styled like a physical hardware button: outer recess ring,
+ * domed cap with vertical-gradient highlight, subtle engraved label. Press state
+ * inverts the cap gradient and shifts the whole cap into the recess.
+ *
+ * Designed for stepper +/- in the schedule panel.
+ */
+@Composable
+fun CircleStepperButton(
+    text: String,
+    onClick: () -> Unit,
+    diameter: androidx.compose.ui.unit.Dp = 36.dp,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val capInset = if (isPressed) 5.dp else 4.dp
+    val capOffsetY = if (isPressed) 1.dp else 0.dp
+
+    Box(
+        modifier = modifier
+            .size(diameter)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(
+                // Recess: dark all over with a brighter rim at the bottom-right to
+                // suggest light coming from the top-left and the cap sitting in a hole.
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors = listOf(Color(0xFF050402), Color(0xFF2A2218)),
+                ),
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            ),
+        contentAlignment = androidx.compose.ui.Alignment.Center,
+    ) {
+        // The cap.
+        Box(
+            modifier = Modifier
+                .size(diameter - capInset * 2)
+                .offset(y = capOffsetY)
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = if (isPressed) {
+                            listOf(Color(0xFF2A2218), Color(0xFF050402))
+                        } else {
+                            listOf(Color(0xFF6E5B45), Color(0xFF332A22))
+                        },
+                    ),
+                )
+                .border(
+                    0.5.dp,
+                    Color(0xFF050402),
+                    androidx.compose.foundation.shape.CircleShape,
+                ),
+            contentAlignment = androidx.compose.ui.Alignment.Center,
+        ) {
+            Text(
+                text = text,
+                color = Color(0xFFCCBBAA),
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Black,
+                fontSize = 18.sp,
+                style = androidx.compose.ui.text.TextStyle(
+                    shadow = androidx.compose.ui.graphics.Shadow(
+                        color = Color(0xCC000000),
+                        offset = androidx.compose.ui.geometry.Offset(0f, -1f),
+                        blurRadius = 0f,
+                    ),
+                ),
+            )
+        }
+    }
+}
 
 @Composable
 fun HardwareButton(

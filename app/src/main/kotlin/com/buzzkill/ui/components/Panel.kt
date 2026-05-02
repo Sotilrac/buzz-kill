@@ -53,7 +53,7 @@ fun Panel(
                 Modifier.fillMaxWidth()
             }
             Row(
-                modifier = headerModifier.padding(bottom = 8.dp),
+                modifier = headerModifier,
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {

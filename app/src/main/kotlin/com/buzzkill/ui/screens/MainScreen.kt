@@ -45,6 +45,7 @@ import com.buzzkill.data.PersistedState
 import com.buzzkill.data.SettingsRepository
 import com.buzzkill.data.StatusLine
 import com.buzzkill.data.UiState
+import com.buzzkill.ui.components.CircleStepperButton
 import com.buzzkill.ui.components.HardwareButton
 import com.buzzkill.ui.components.HardwareButtonStyle
 import com.buzzkill.ui.components.Led
@@ -322,6 +323,7 @@ private fun SchedulePanel(
 ) {
     val persisted = state.persisted
     Panel(label = "schedule", modifier = Modifier.fillMaxWidth()) {
+        Spacer(Modifier.height(8.dp))
         // 1) Plain-language explanation at the top of the card.
         ScheduleNote()
         Spacer(Modifier.height(14.dp))
@@ -432,28 +434,26 @@ private fun InactivityStepper(seconds: Int, onChange: (Int) -> Unit) {
         )
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            HardwareButton(
-                text = "-",
+            CircleStepperButton(
+                text = "−",
                 onClick = {
                     val next = (minutes - 1).coerceAtLeast(SettingsRepository.MIN_INACTIVITY_MINUTES)
                     onChange(next * 60)
                 },
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
             )
             SevenSegmentDisplay(
                 text = formatMinutes(minutes),
                 digitWidth = 18.dp,
                 digitHeight = 30.dp,
             )
-            HardwareButton(
+            CircleStepperButton(
                 text = "+",
                 onClick = {
                     val next = (minutes + 1).coerceAtMost(SettingsRepository.MAX_INACTIVITY_MINUTES)
                     onChange(next * 60)
                 },
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
             )
         }
     }
@@ -495,6 +495,7 @@ private fun SetupPanel(
         modifier = Modifier.fillMaxWidth(),
     ) {
         if (expanded) {
+            Spacer(Modifier.height(12.dp))
             ChecklistView(state.permissions, onFixPermission, onTogglePermissionAck)
             Spacer(Modifier.height(16.dp))
             TestTriggerSection(
