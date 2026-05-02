@@ -17,7 +17,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
@@ -71,44 +72,42 @@ fun MainScreen(
     var editing by remember { mutableStateOf<TimeEdit?>(null) }
     var pendingEnable by remember { mutableStateOf(false) }
 
-    LazyColumn(
+    // Regular Column + verticalScroll so the screen scrolls ONLY when content
+    // actually overflows. LazyColumn was always scrollable (with overscroll bounce)
+    // even when collapsed content fit comfortably.
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0A0806))
-            .padding(WindowInsets.systemBars.asPaddingValues()),
-        contentPadding = PaddingValues(16.dp),
+            .padding(WindowInsets.systemBars.asPaddingValues())
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item { Header() }
-        item {
-            SchedulePanel(
-                persisted = state.persisted,
-                onToggleEnabled = { newValue ->
-                    if (newValue && !state.persisted.firstShutdownConfirmed) {
-                        pendingEnable = true
-                    } else {
-                        onToggleEnabled(newValue)
-                    }
-                },
-                onEditStart = { editing = TimeEdit.Start },
-                onEditEnd = { editing = TimeEdit.End },
-                onSetInactivitySeconds = onSetInactivitySeconds,
-            )
-        }
-        item {
-            StatusPanel(
-                state = state,
-                onFixPermission = onFixPermission,
-                onTogglePermissionAck = onTogglePermissionAck,
-            )
-        }
-        item {
-            TestTriggerPanel(
-                onDryRun = onTestTriggerDryRun,
-                onLive = onTestTriggerLive,
-            )
-        }
-        item { Spacer(Modifier.height(24.dp)) }
+        Header()
+        SchedulePanel(
+            persisted = state.persisted,
+            onToggleEnabled = { newValue ->
+                if (newValue && !state.persisted.firstShutdownConfirmed) {
+                    pendingEnable = true
+                } else {
+                    onToggleEnabled(newValue)
+                }
+            },
+            onEditStart = { editing = TimeEdit.Start },
+            onEditEnd = { editing = TimeEdit.End },
+            onSetInactivitySeconds = onSetInactivitySeconds,
+        )
+        StatusPanel(
+            state = state,
+            onFixPermission = onFixPermission,
+            onTogglePermissionAck = onTogglePermissionAck,
+        )
+        TestTriggerPanel(
+            onDryRun = onTestTriggerDryRun,
+            onLive = onTestTriggerLive,
+        )
+        Spacer(Modifier.height(8.dp))
     }
 
     editing?.let { which ->
@@ -320,9 +319,13 @@ private fun SchedulePanel(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth(),
         ) {
+            // IntrinsicSize.Max makes the inner column as wide as its widest child
+            // (the stepper). The two LabeledTime rows then have a known width to
+            // centre their 7-seg displays inside.
             Column(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 horizontalAlignment = Alignment.Start,
+                modifier = Modifier.width(androidx.compose.foundation.layout.IntrinsicSize.Max),
             ) {
                 LabeledTime(
                     label = "window open",
@@ -353,8 +356,9 @@ private fun SchedulePanel(
 private fun LabeledTime(label: String, minutes: Int, onClick: () -> Unit) {
     Column(
         verticalArrangement = Arrangement.spacedBy(2.dp),
-        horizontalAlignment = Alignment.Start,
-        modifier = Modifier.clickable(onClick = onClick),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
     ) {
         Text(
             text = label.uppercase(),
@@ -363,11 +367,16 @@ private fun LabeledTime(label: String, minutes: Int, onClick: () -> Unit) {
             fontSize = 9.sp,
             letterSpacing = 1.sp,
         )
-        SevenSegmentDisplay(
-            text = formatHHMM(minutes),
-            digitWidth = 18.dp,
-            digitHeight = 30.dp,
-        )
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            SevenSegmentDisplay(
+                text = formatHHMM(minutes),
+                digitWidth = 18.dp,
+                digitHeight = 30.dp,
+            )
+        }
     }
 }
 
@@ -379,7 +388,7 @@ private fun InactivityStepper(seconds: Int, onChange: (Int) -> Unit) {
         horizontalAlignment = Alignment.Start,
     ) {
         Text(
-            text = "INACTIVITY",
+            text = "INACTIVITY (MIN)",
             color = Color(0xFF665544),
             fontFamily = FontFamily.Monospace,
             fontSize = 9.sp,
@@ -401,13 +410,6 @@ private fun InactivityStepper(seconds: Int, onChange: (Int) -> Unit) {
                 text = formatMinutes(minutes),
                 digitWidth = 18.dp,
                 digitHeight = 30.dp,
-            )
-            Text(
-                text = "MIN",
-                color = Color(0xFF665544),
-                fontFamily = FontFamily.Monospace,
-                fontSize = 10.sp,
-                letterSpacing = 1.sp,
             )
             HardwareButton(
                 text = "+",
