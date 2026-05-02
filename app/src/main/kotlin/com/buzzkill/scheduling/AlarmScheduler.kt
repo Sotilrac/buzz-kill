@@ -29,25 +29,27 @@ class AlarmScheduler(private val context: Context) {
         context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
     suspend fun rearmDailyWindow() {
-        val s = SettingsRepository(context).state.first()
-        if (!s.enabled) {
-            cancelDailyWindow()
-            cancelInactivity()
-            // Make sure the service tears down state and the FGS stops.
-            context.sendBroadcast(internalIntent(Broadcasts.WINDOW_CLOSE))
-            return
-        }
-        scheduleDaily(REQ_OPEN, s.windowStartMinutes, Broadcasts.WINDOW_OPEN)
-        scheduleDaily(REQ_CLOSE, s.windowEndMinutes, Broadcasts.WINDOW_CLOSE)
+        try {
+            val s = SettingsRepository(context).state.first()
+            if (!s.enabled) {
+                cancelDailyWindow()
+                cancelInactivity()
+                context.sendBroadcast(internalIntent(Broadcasts.WINDOW_CLOSE))
+                return
+            }
+            scheduleDaily(REQ_OPEN, s.windowStartMinutes, Broadcasts.WINDOW_OPEN)
+            scheduleDaily(REQ_CLOSE, s.windowEndMinutes, Broadcasts.WINDOW_CLOSE)
 
-        // If we're already inside the window at re-arm time, fire WINDOW_OPEN now.
-        val now = MainViewModel.currentMinuteOfDay()
-        if (MainViewModel.isInWindow(now, s.windowStartMinutes, s.windowEndMinutes)) {
-            context.sendBroadcast(internalIntent(Broadcasts.WINDOW_OPEN))
-        } else {
-            context.sendBroadcast(internalIntent(Broadcasts.WINDOW_CLOSE))
+            val now = MainViewModel.currentMinuteOfDay()
+            if (MainViewModel.isInWindow(now, s.windowStartMinutes, s.windowEndMinutes)) {
+                context.sendBroadcast(internalIntent(Broadcasts.WINDOW_OPEN))
+            } else {
+                context.sendBroadcast(internalIntent(Broadcasts.WINDOW_CLOSE))
+            }
+            Log.i(TAG, "daily window armed: ${s.windowStartMinutes} → ${s.windowEndMinutes}")
+        } catch (t: Throwable) {
+            Log.e(TAG, "rearmDailyWindow failed", t)
         }
-        Log.i(TAG, "daily window armed: ${s.windowStartMinutes} → ${s.windowEndMinutes}")
     }
 
     fun cancelDailyWindow() {

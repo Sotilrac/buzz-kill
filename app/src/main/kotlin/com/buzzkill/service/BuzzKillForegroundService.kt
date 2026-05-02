@@ -99,17 +99,28 @@ class BuzzKillForegroundService : Service() {
 
         fun start(context: android.content.Context) {
             val intent = Intent(context, BuzzKillForegroundService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+            } catch (t: Throwable) {
+                // ForegroundServiceStartNotAllowedException, SecurityException etc. on
+                // newer Android can land here. The timer logic in the accessibility
+                // service still works without an FGS — just with worse OS retention.
+                Log.w(TAG, "FGS start call failed; continuing without it", t)
             }
         }
 
         fun stop(context: android.content.Context) {
             val intent = Intent(context, BuzzKillForegroundService::class.java)
                 .setAction(ACTION_STOP)
-            context.startService(intent)
+            try {
+                context.startService(intent)
+            } catch (t: Throwable) {
+                Log.w(TAG, "FGS stop call failed", t)
+            }
         }
     }
 }
