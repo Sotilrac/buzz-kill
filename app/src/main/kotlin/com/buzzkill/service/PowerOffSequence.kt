@@ -119,47 +119,74 @@ class PowerOffSequence(private val service: AccessibilityService) {
         return Result.Triggered(hit.matchedText, mode)
     }
 
+    /**
+     * Slide-down with a hold at the target. OnePlus slide-to-power-off accepts a
+     * pure linear swipe when the dialog is in foreground (test trigger), but when
+     * the dialog opens fresh from a screen-off wake, the slider widget seems to
+     * require the touch to remain at the target position briefly before it
+     * registers the slide as complete. We split it into two strokes:
+     *   1) the swipe itself, with willContinue=true
+     *   2) a continuation that holds at the destination
+     */
     private suspend fun dispatchSlideDownGesture(): Boolean {
         val metrics = service.resources.displayMetrics
         val w = metrics.widthPixels
         val h = metrics.heightPixels
 
-        // OnePlus / OxygenOS dialog: slider widget at screen centre, target 25%
-        // below. Despite the on-screen "two fingers" instruction, a single-finger
-        // slide on the slider engages the power-off action.
         val startX = w / 2f
         val startY = h * 0.50f
-        val endY = h * 0.75f
+        val endY = h * 0.78f
 
-        val path = Path().apply {
+        val swipePath = Path().apply {
             moveTo(startX, startY)
             lineTo(startX, endY)
         }
-        Log.i(TAG, "slide down: ($startX,$startY)→($startX,$endY), duration=${SLIDE_DOWN_DURATION_MS}ms, w=$w h=$h")
+        Log.i(TAG, "slide+hold: ($startX,$startY)→($startX,$endY), swipe=${SLIDE_DOWN_DURATION_MS}ms, hold=${SLIDE_HOLD_MS}ms, w=$w h=$h")
 
-        val gesture = GestureDescription.Builder()
-            .addStroke(GestureDescription.StrokeDescription(path, 0L, SLIDE_DOWN_DURATION_MS))
-            .build()
+        val swipeStroke = GestureDescription.StrokeDescription(
+            swipePath,
+            0L,
+            SLIDE_DOWN_DURATION_MS,
+            true,
+        )
+        val swipeGesture = GestureDescription.Builder().addStroke(swipeStroke).build()
+        if (!dispatchAsync(swipeGesture, label = "swipe")) return false
 
-        return suspendCancellableCoroutine { cont ->
+        // Hold phase: a stroke that keeps the finger at the target point. The
+        // continueStroke path must start at the previous stroke's end point.
+        val holdPath = Path().apply {
+            moveTo(startX, endY)
+            lineTo(startX, endY)
+        }
+        val holdStroke = swipeStroke.continueStroke(
+            holdPath,
+            0L,
+            SLIDE_HOLD_MS,
+            false,
+        )
+        val holdGesture = GestureDescription.Builder().addStroke(holdStroke).build()
+        return dispatchAsync(holdGesture, label = "hold")
+    }
+
+    private suspend fun dispatchAsync(gesture: GestureDescription, label: String): Boolean =
+        suspendCancellableCoroutine { cont ->
             val handler = Handler(Looper.getMainLooper())
             val callback = object : AccessibilityService.GestureResultCallback() {
                 override fun onCompleted(g: GestureDescription?) {
-                    Log.i(TAG, "slide-down completed")
+                    Log.i(TAG, "$label completed")
                     if (cont.isActive) cont.resume(true)
                 }
                 override fun onCancelled(g: GestureDescription?) {
-                    Log.w(TAG, "slide-down cancelled by system")
+                    Log.w(TAG, "$label cancelled by system")
                     if (cont.isActive) cont.resume(false)
                 }
             }
             val dispatched = service.dispatchGesture(gesture, callback, handler)
             if (!dispatched) {
-                Log.w(TAG, "dispatchGesture returned false (refused)")
+                Log.w(TAG, "dispatchGesture(\"$label\") returned false")
                 if (cont.isActive) cont.resume(false)
             }
         }
-    }
 
     private suspend fun dispatchSwipe(targetBounds: Rect): Boolean {
         val metrics = service.resources.displayMetrics
@@ -257,11 +284,15 @@ class PowerOffSequence(private val service: AccessibilityService) {
 
     companion object {
         private const val TAG = "BuzzKill.poweroff"
-        private const val POST_DIALOG_DELAY_MS = 1200L
+        // 2.5s lets the screen-wake fade-in finish on a cold lockscreen wake-up.
+        // If the wake animation is the problem, this should fix it; if not, the
+        // problem is touch filtering and a longer wait won't help.
+        private const val POST_DIALOG_DELAY_MS = 2500L
         private const val POST_TAP_DELAY_MS = 400L
         private const val SWIPE_DURATION_MS = 400L
-        private const val SLIDE_DOWN_DURATION_MS = 1300L
-        private const val POST_GESTURE_VERIFY_MS = 700L
+        private const val SLIDE_DOWN_DURATION_MS = 800L
+        private const val SLIDE_HOLD_MS = 700L
+        private const val POST_GESTURE_VERIFY_MS = 800L
         private const val SLIDE_RETRIES = 3
     }
 
