@@ -25,8 +25,8 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:zoom="0.50583575"
-     inkscape:cx="141.35023"
-     inkscape:cy="1230.6366"
+     inkscape:cx="139.3733"
+     inkscape:cy="1228.6597"
      inkscape:window-width="2480"
      inkscape:window-height="2120"
      inkscape:window-x="80"
@@ -266,16 +266,16 @@
      style="font-variation-settings:'wght' 700;fill:#14110d;fill-opacity:1;stroke:url(#radialGradient26);stroke-width:7.55898;stroke-linecap:round;stroke-dasharray:none;stroke-dashoffset:0"
      inkscape:path-effect="#path-effect25"
      inkscape:original-d="M 119,0 H 361 L 480,119 V 361 L 361,480 H 119 L 0,361 V 119 Z"
-     transform="matrix(1.5196707,0,0,1.5196707,145.61896,149.72239)" />
+     transform="matrix(1.2995343,0,0,1.2995343,197.85618,203.43161)" />
   <rect
-     width="965.46399"
-     height="965.46399"
+     width="825.60889"
+     height="825.60889"
      fill="#0a0806"
      fill-opacity="0"
      id="rect21"
-     x="28.938122"
-     y="29.753574"
-     style="stroke-width:2.01138" />
+     x="98.077484"
+     y="100.84123"
+     style="stroke-width:1.72002" />
   <text
      x="159.58627"
      y="309.7128"
@@ -285,7 +285,7 @@
      fill="#fff6e0"
      filter="url(#neon-b)"
      id="text21"
-     transform="matrix(2.0113832,0,0,2.0113832,28.938121,29.753574)">B</text>
+     transform="matrix(1.7200184,0,0,1.7200184,98.077486,100.84123)">B</text>
   <text
      x="286.73126"
      y="422.30179"
@@ -295,5 +295,5 @@
      fill="#ffe4dc"
      filter="url(#neon-k)"
      id="text22"
-     transform="matrix(2.0113832,0,0,2.0113832,28.938121,29.753574)">K</text>
+     transform="matrix(1.7200184,0,0,1.7200184,98.077486,100.84123)">K</text>
 </svg>
