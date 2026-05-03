@@ -180,9 +180,10 @@ private fun FirstShutdownDialog(
             Text(
                 text =
                 "Once the timer fires, the phone will fully power off. " +
-                    "It will not turn back on by itself unless you've configured the OEM " +
-                    "scheduled power-on. Make sure you've set that and that anything " +
-                    "time-sensitive (alarms in another app, on-call rotations) accounts for it.",
+                    "You can turn it back on manually with the power button, or set a " +
+                    "scheduled power-on in your phone's settings to wake it automatically. " +
+                    "Anything time-sensitive (alarms in another app, on-call rotations) " +
+                    "needs to account for the phone being off.",
                 color = Color(0xFFCCBBAA),
                 fontFamily = FontFamily.Monospace,
                 fontSize = 13.sp,
@@ -548,8 +549,8 @@ private fun InactivityStepper(
 private fun ScheduleNote() {
     Text(
         text =
-        "While inside the window, if your screen stays off for the inactivity period, the phone is powered off. " +
-            "\nScheduled a power-on in using the Settings to bring it back automatically in the morning.",
+        "While inside the window, if your screen stays off for the inactivity period, the phone is powered off." +
+            "\nTurn it back on with the power button, or set a scheduled power-on in your phone's settings.",
         color = Color(0xFF998877),
         fontFamily = FontFamily.Monospace,
         fontSize = 11.sp,

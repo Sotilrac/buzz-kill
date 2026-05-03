@@ -84,7 +84,7 @@ class MainActivity : ComponentActivity() {
                     Toast
                         .makeText(
                             this,
-                            "Open Settings → Additional settings → Scheduled power on/off",
+                            "Open your phone's settings → Additional settings → Scheduled power on/off",
                             Toast.LENGTH_LONG,
                         ).show()
                 }
