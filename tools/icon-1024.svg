@@ -24,9 +24,9 @@
      inkscape:pageopacity="0.0"
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
-     inkscape:zoom="0.43580542"
-     inkscape:cx="304.03477"
-     inkscape:cy="1641.7878"
+     inkscape:zoom="0.50583575"
+     inkscape:cx="141.35023"
+     inkscape:cy="1230.6366"
      inkscape:window-width="2480"
      inkscape:window-height="2120"
      inkscape:window-x="80"
@@ -263,10 +263,10 @@
   <path
      id="rect22"
      d="m 136,0 h 208 a 41.041631,41.041631 22.5 0 1 29.02082,12.020815 l 94.95836,94.958365 A 41.041631,41.041631 67.5 0 1 480,136 v 208 a 41.041631,41.041631 112.5 0 1 -12.02082,29.02082 l -94.95836,94.95836 A 41.041631,41.041631 157.5 0 1 344,480 H 136 A 41.041631,41.041631 22.5 0 1 106.97918,467.97918 L 12.020815,373.02082 A 41.041631,41.041631 67.5 0 1 0,344 V 136 A 41.041631,41.041631 112.5 0 1 12.020815,106.97918 L 106.97918,12.020815 A 41.041631,41.041631 157.5 0 1 136,0 Z"
-     style="font-variation-settings:'wght' 700;fill:#14110d;fill-opacity:1;stroke-width:7.55897732;stroke-linecap:round;stroke-dasharray:none;stroke:url(#radialGradient26);stroke-dashoffset:0"
+     style="font-variation-settings:'wght' 700;fill:#14110d;fill-opacity:1;stroke:url(#radialGradient26);stroke-width:7.55898;stroke-linecap:round;stroke-dasharray:none;stroke-dashoffset:0"
      inkscape:path-effect="#path-effect25"
      inkscape:original-d="M 119,0 H 361 L 480,119 V 361 L 361,480 H 119 L 0,361 V 119 Z"
-     transform="matrix(2.0113832,0,0,2.0113832,28.938122,29.753574)" />
+     transform="matrix(1.5196707,0,0,1.5196707,145.61896,149.72239)" />
   <rect
      width="965.46399"
      height="965.46399"
@@ -285,7 +285,7 @@
      fill="#fff6e0"
      filter="url(#neon-b)"
      id="text21"
-     transform="matrix(2.0113832,0,0,2.0113832,28.938122,29.753574)">B</text>
+     transform="matrix(2.0113832,0,0,2.0113832,28.938121,29.753574)">B</text>
   <text
      x="286.73126"
      y="422.30179"
@@ -295,5 +295,5 @@
      fill="#ffe4dc"
      filter="url(#neon-k)"
      id="text22"
-     transform="matrix(2.0113832,0,0,2.0113832,28.938122,29.753574)">K</text>
+     transform="matrix(2.0113832,0,0,2.0113832,28.938121,29.753574)">K</text>
 </svg>
