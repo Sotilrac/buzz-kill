@@ -384,7 +384,7 @@ private fun ScheduleStatusText(state: UiState) {
     // useful next number.
     val text = when (val s = state.status) {
         is StatusLine.NeedsSetup -> "set up first"
-        is StatusLine.Disabled -> "off"
+        is StatusLine.Disabled -> ""
         is StatusLine.Armed -> "opens in\n${formatDuration(s.nextOpenMinutes * 60)}"
         is StatusLine.Active -> "closes in\n${formatDuration(s.minutesRemainingInWindow * 60)}"
         is StatusLine.Counting -> "killing in\n${formatDuration(s.secondsRemaining)}"
@@ -473,7 +473,8 @@ private fun InactivityStepper(seconds: Int, onChange: (Int) -> Unit) {
 @Composable
 private fun ScheduleNote() {
     Text(
-        text = "Inside the window, if your screen stays off for the inactivity period, BuzzKill will power off the phone. Scheduled a power-on in the Settings to bring it back in the morning.",
+        text = "While inside the window, if your screen stays off for the inactivity period, the phone is powered off. " +
+                "\nScheduled a power-on in using the Settings to bring it back automatically in the morning.",
         color = Color(0xFF998877),
         fontFamily = FontFamily.Monospace,
         fontSize = 11.sp,
