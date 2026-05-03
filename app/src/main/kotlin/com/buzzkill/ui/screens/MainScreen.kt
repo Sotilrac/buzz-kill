@@ -250,6 +250,9 @@ private fun NeonTitle() {
             fontFamily = FontFamily.Monospace,
             fontSize = 9.sp,
             letterSpacing = 1.sp,
+            // Compensates for the neon glow which extends below the title's
+            // glyph baseline; without this the version label looks too low.
+            modifier = Modifier.padding(bottom = 3.dp),
         )
     }
 }
