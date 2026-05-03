@@ -24,6 +24,19 @@ class ShutdownAccessibilityService : AccessibilityService() {
     private lateinit var repo: SettingsRepository
     private lateinit var alarms: AlarmScheduler
 
+    companion object {
+        private const val TAG = "BuzzKill.svc"
+
+        /**
+         * Process-wide reference to the live accessibility service instance.
+         * Manifest-registered receivers (e.g. [com.buzzkill.scheduling.InactivityReceiver])
+         * use this to invoke shutdown after the system has re-bound the service.
+         */
+        @Volatile
+        var instance: ShutdownAccessibilityService? = null
+            private set
+    }
+
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
@@ -31,7 +44,8 @@ class ShutdownAccessibilityService : AccessibilityService() {
                 Intent.ACTION_SCREEN_ON, Intent.ACTION_USER_PRESENT -> onScreenOn()
                 Broadcasts.WINDOW_OPEN -> onWindowOpen()
                 Broadcasts.WINDOW_CLOSE -> onWindowClose()
-                Broadcasts.INACTIVITY_FIRED -> onInactivityFired()
+                // INACTIVITY_FIRED is owned by InactivityReceiver (manifest-registered)
+                // so OEM process-killing can't drop the alarm on the floor.
                 Broadcasts.TEST_TRIGGER_DRY_RUN -> onTestTrigger(dryRun = true)
                 Broadcasts.TEST_TRIGGER_LIVE -> onTestTrigger(dryRun = false)
             }
@@ -40,6 +54,7 @@ class ShutdownAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        instance = this
         repo = SettingsRepository(applicationContext)
         alarms = AlarmScheduler(applicationContext)
 
@@ -49,7 +64,6 @@ class ShutdownAccessibilityService : AccessibilityService() {
             addAction(Intent.ACTION_USER_PRESENT)
             addAction(Broadcasts.WINDOW_OPEN)
             addAction(Broadcasts.WINDOW_CLOSE)
-            addAction(Broadcasts.INACTIVITY_FIRED)
             addAction(Broadcasts.TEST_TRIGGER_DRY_RUN)
             addAction(Broadcasts.TEST_TRIGGER_LIVE)
         }
@@ -71,7 +85,20 @@ class ShutdownAccessibilityService : AccessibilityService() {
         runCatching { unregisterReceiver(receiver) }
         scope.launch { repo.setStatus(isArmed = false, isInWindow = false) }
         scope.cancel()
+        instance = null
         return super.onUnbind(intent)
+    }
+
+    /**
+     * Run the shutdown sequence from outside the service (e.g. from a manifest-
+     * registered receiver after the process was woken). Returns immediately;
+     * the sequence runs on the service's IO scope.
+     */
+    fun triggerShutdown(dryRun: Boolean) {
+        scope.launch {
+            val result = PowerOffSequence(this@ShutdownAccessibilityService).run(dryRun = dryRun)
+            Log.i(TAG, "external shutdown trigger result (dryRun=$dryRun): $result")
+        }
     }
 
     private fun onScreenOff() {
@@ -148,7 +175,4 @@ class ShutdownAccessibilityService : AccessibilityService() {
         }
     }
 
-    companion object {
-        private const val TAG = "BuzzKill.svc"
-    }
 }

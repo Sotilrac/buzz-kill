@@ -44,6 +44,14 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".scheduling.InactivityReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.buzzkill.action.INACTIVITY_FIRED" />
+            </intent-filter>
+        </receiver>
+
         <service
             android:name=".service.BuzzKillForegroundService"
             android:exported="false"

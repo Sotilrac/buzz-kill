@@ -462,7 +462,7 @@ private fun InactivityStepper(seconds: Int, onChange: (Int) -> Unit) {
 @Composable
 private fun ScheduleNote() {
     Text(
-        text = "Inside the window, if your screen stays off for the inactivity period, BuzzKill will power off the phone. Use your OEM's scheduled power-on to bring it back in the morning.",
+        text = "Inside the window, if your screen stays off for the inactivity period, BuzzKill will power off the phone. Scheduled a power-on in the Settings to bring it back in the morning.",
         color = Color(0xFF998877),
         fontFamily = FontFamily.Monospace,
         fontSize = 11.sp,
