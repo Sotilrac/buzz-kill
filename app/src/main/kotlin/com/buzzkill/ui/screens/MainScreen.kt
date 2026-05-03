@@ -328,16 +328,15 @@ private fun SchedulePanel(
         ScheduleNote()
         Spacer(Modifier.height(14.dp))
 
-        // 2) Inputs left, switch + status on the right.
+        // 2) Two equal-width columns: inputs on the left, toggle + status on the right.
         Row(
             verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 horizontalAlignment = Alignment.Start,
-                modifier = Modifier.width(androidx.compose.foundation.layout.IntrinsicSize.Max),
+                modifier = Modifier.weight(1f),
             ) {
                 LabeledTime(
                     label = "window open",
@@ -354,15 +353,15 @@ private fun SchedulePanel(
                     onChange = onSetInactivitySeconds,
                 )
             }
-            Spacer(Modifier.width(16.dp))
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.weight(1f),
             ) {
                 LedSwitch(
                     isOn = persisted.enabled,
                     onToggle = { onToggleEnabled(!persisted.enabled) },
-                    label = null,
+                    label = "armed",
                 )
                 ScheduleStatusText(state = state)
             }
