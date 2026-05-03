@@ -43,6 +43,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.buzzkill.BuildConfig
 import com.buzzkill.data.PermissionStatus
 import com.buzzkill.data.PersistedState
 import com.buzzkill.data.SettingsRepository
@@ -244,12 +245,11 @@ private fun NeonTitle() {
         )
         Spacer(Modifier.width(8.dp))
         Text(
-            text = "v${com.buzzkill.BuildConfig.VERSION_NAME}",
+            text = "v${BuildConfig.VERSION_NAME}",
             color = Color(0xFF665544),
             fontFamily = FontFamily.Monospace,
             fontSize = 9.sp,
             letterSpacing = 1.sp,
-            modifier = Modifier.padding(bottom = 6.dp),
         )
     }
 }
