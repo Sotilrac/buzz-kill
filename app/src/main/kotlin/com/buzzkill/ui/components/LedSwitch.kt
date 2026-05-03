@@ -58,8 +58,13 @@ fun LedSwitch(
 
 @Composable
 private fun SwitchBody(isOn: Boolean, onToggle: () -> Unit) {
-    val trackWidth = 36.dp
-    val trackHeight = 56.dp
+    // Outer recess (the "panel hole") + inner track + knob, mirroring the layered
+    // bezel/cap pattern used by CircleStepperButton.
+    val outerWidth = 44.dp
+    val outerHeight = 64.dp
+    val recessInset = 3.dp
+    val trackWidth = outerWidth - recessInset * 2
+    val trackHeight = outerHeight - recessInset * 2
     val knobHeight = 28.dp
     val travel = trackHeight - knobHeight
 
@@ -69,42 +74,56 @@ private fun SwitchBody(isOn: Boolean, onToggle: () -> Unit) {
         label = "switchOffset",
     )
 
+    // Outer recess: dark vertical gradient suggesting a hole in the front panel.
     Box(
         modifier = Modifier
-            .size(trackWidth, trackHeight)
-            .clip(RoundedCornerShape(4.dp))
+            .size(outerWidth, outerHeight)
+            .clip(RoundedCornerShape(6.dp))
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF050402), Color(0xFF14110D)),
+                    colors = listOf(Color(0xFF050402), Color(0xFF2A2218)),
                 ),
             )
-            .border(1.dp, Color(0xFF332A22), RoundedCornerShape(4.dp))
             .clickable(onClick = onToggle),
+        contentAlignment = Alignment.Center,
     ) {
+        // Inner track sits inside the recess.
         Box(
             modifier = Modifier
-                .padding(top = travel * offsetFraction)
-                .size(width = trackWidth - 4.dp, height = knobHeight)
-                .clip(RoundedCornerShape(3.dp))
+                .size(trackWidth, trackHeight)
+                .clip(RoundedCornerShape(4.dp))
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color(0xFF6E5B45), Color(0xFF332A22)),
+                        colors = listOf(Color(0xFF050402), Color(0xFF14110D)),
                     ),
                 )
-                .border(1.dp, Color(0xFF14110D), RoundedCornerShape(3.dp))
-                .align(Alignment.TopCenter),
+                .border(0.5.dp, Color(0xFF050402), RoundedCornerShape(4.dp)),
         ) {
-            Column(
-                modifier = Modifier.align(Alignment.Center),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
-            ) {
-                repeat(3) {
-                    Spacer(
-                        Modifier
-                            .height(1.dp)
-                            .width(16.dp)
-                            .background(Color(0xFF050402)),
+            Box(
+                modifier = Modifier
+                    .padding(top = travel * offsetFraction)
+                    .size(width = trackWidth - 4.dp, height = knobHeight)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color(0xFF6E5B45), Color(0xFF332A22)),
+                        ),
                     )
+                    .border(1.dp, Color(0xFF14110D), RoundedCornerShape(3.dp))
+                    .align(Alignment.TopCenter),
+            ) {
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    repeat(3) {
+                        Spacer(
+                            Modifier
+                                .height(1.dp)
+                                .width(16.dp)
+                                .background(Color(0xFF050402)),
+                        )
+                    }
                 }
             }
         }
