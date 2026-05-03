@@ -395,6 +395,9 @@ private fun ScheduleStatusText(state: UiState) {
         fontFamily = FontFamily.Monospace,
         fontSize = 11.sp,
         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        // Reserve 2 lines so the toggle above doesn't shift when the status
+        // changes from a 1-line to 2-line message.
+        minLines = 2,
     )
 }
 
