@@ -52,7 +52,7 @@
             android:name=".scheduling.InactivityReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.buzzkill.action.INACTIVITY_FIRED" />
+                <action android:name="ca.asmat.buzzkill.action.INACTIVITY_FIRED" />
             </intent-filter>
         </receiver>
 

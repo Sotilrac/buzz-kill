@@ -47,6 +47,16 @@ ktlint:
       - app/build/reports/ktlint/
     expire_in: 1 week
 
+detekt:
+  stage: lint
+  script:
+    - ./gradlew :app:detekt
+  artifacts:
+    when: always
+    paths:
+      - app/build/reports/detekt/
+    expire_in: 1 week
+
 android-lint:
   stage: lint
   script:

@@ -11,7 +11,7 @@ Kotlin, Jetpack Compose, Material 3 (heavily restyled), single Activity, ViewMod
 One app module. Suggested package layout:
 
 ```
-com.buzzkill/
+ca.asmat.buzzkill/
   ui/           // Compose screen, theme, custom components (LED, 7seg, panel)
   service/      // ShutdownAccessibilityService, ForegroundService
   scheduling/   // AlarmScheduler, BootReceiver, PackageReplacedReceiver

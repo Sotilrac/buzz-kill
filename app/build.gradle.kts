@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.buzzkill"
+    namespace = "ca.asmat.buzzkill"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.buzzkill"
+        applicationId = "ca.asmat.buzzkill"
         minSdk = 26
         targetSdk = 36
         // Override from CI with -PversionName=… / -PversionCode=…

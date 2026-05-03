@@ -2,7 +2,7 @@
 
 Android app that powers off the phone after an inactivity timeout, only inside a configurable nightly window. Single-screen, Winamp-style hardware-panel UI.
 
-Primary target: **OnePlus 11 (OxygenOS)**. The code keeps OEM specifics in `app/src/main/kotlin/com/buzzkill/oem/` so adding Pixel, Samsung, Xiaomi, etc. is a data-only change.
+Primary target: **OnePlus 11 (OxygenOS)**. The code keeps OEM specifics in `app/src/main/kotlin/ca/asmat/buzzkill/oem/` so adding Pixel, Samsung, Xiaomi, etc. is a data-only change.
 
 ## Why this exists
 
@@ -217,7 +217,7 @@ adb -s <serial> logcat 'BuzzKill.*:V' '*:S'
 ### What "good" looks like for an inactivity-fired shutdown
 
 ```
-AlarmManager: sending alarm ... action com.buzzkill.action.INACTIVITY_FIRED
+AlarmManager: sending alarm ... action ca.asmat.buzzkill.action.INACTIVITY_FIRED
 BuzzKill.inactivity: inactivity broadcast received
 BuzzKill.inactivity: running shutdown (emulator=false)
 BuzzKill.poweroff: running power-off sequence (dryRun=false)
@@ -266,5 +266,5 @@ The `versionCode` is computed `MAJOR*10000 + MINOR*100 + PATCH` (so `v0.2.0` →
 ## Uninstall
 
 ```bash
-adb uninstall com.buzzkill
+adb uninstall ca.asmat.buzzkill
 ```
