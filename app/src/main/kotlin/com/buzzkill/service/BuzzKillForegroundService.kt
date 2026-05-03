@@ -19,10 +19,13 @@ import com.buzzkill.MainActivity
  * doesn't sweep the app from memory mid-window.
  */
 class BuzzKillForegroundService : Service() {
-
     override fun onBind(intent: Intent?): IBinder? = null
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int,
+    ): Int {
         when (intent?.action) {
             ACTION_STOP -> {
                 stopForeground(STOP_FOREGROUND_REMOVE)
@@ -62,25 +65,28 @@ class BuzzKillForegroundService : Service() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val nm = getSystemService(NotificationManager::class.java)
         if (nm.getNotificationChannel(CHANNEL_ID) != null) return
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "BuzzKill window active",
-            NotificationManager.IMPORTANCE_LOW,
-        ).apply {
-            description = "Shown while the inactivity-shutdown window is open."
-            setShowBadge(false)
-        }
+        val channel =
+            NotificationChannel(
+                CHANNEL_ID,
+                "BuzzKill window active",
+                NotificationManager.IMPORTANCE_LOW,
+            ).apply {
+                description = "Shown while the inactivity-shutdown window is open."
+                setShowBadge(false)
+            }
         nm.createNotificationChannel(channel)
     }
 
     private fun buildNotification(): Notification {
-        val openApp = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        val openApp =
+            PendingIntent.getActivity(
+                this,
+                0,
+                Intent(this, MainActivity::class.java),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+        return NotificationCompat
+            .Builder(this, CHANNEL_ID)
             .setContentTitle("BuzzKill armed")
             .setContentText("Window is active. Phone will power off after inactivity.")
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
@@ -114,8 +120,9 @@ class BuzzKillForegroundService : Service() {
         }
 
         fun stop(context: android.content.Context) {
-            val intent = Intent(context, BuzzKillForegroundService::class.java)
-                .setAction(ACTION_STOP)
+            val intent =
+                Intent(context, BuzzKillForegroundService::class.java)
+                    .setAction(ACTION_STOP)
             try {
                 context.startService(intent)
             } catch (t: Throwable) {

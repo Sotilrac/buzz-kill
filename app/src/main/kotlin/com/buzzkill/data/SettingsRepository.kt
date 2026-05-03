@@ -19,8 +19,9 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
  * Settings are user-edited via the UI. Status fields are written by the service and
  * observed by the UI; the service never reads anything mutable from the UI's flows.
  */
-class SettingsRepository(private val context: Context) {
-
+class SettingsRepository(
+    private val context: Context,
+) {
     private object Keys {
         val WindowStartMinutes = intPreferencesKey("window_start_minutes")
         val WindowEndMinutes = intPreferencesKey("window_end_minutes")
@@ -39,23 +40,27 @@ class SettingsRepository(private val context: Context) {
         val FirstShutdownConfirmed = booleanPreferencesKey("first_shutdown_confirmed")
     }
 
-    val state: Flow<PersistedState> = context.dataStore.data.map { prefs ->
-        PersistedState(
-            windowStartMinutes = prefs[Keys.WindowStartMinutes] ?: DEFAULT_WINDOW_START,
-            windowEndMinutes = prefs[Keys.WindowEndMinutes] ?: DEFAULT_WINDOW_END,
-            inactivityTimeoutSeconds = prefs[Keys.InactivityTimeoutSeconds] ?: DEFAULT_INACTIVITY,
-            enabled = prefs[Keys.Enabled] ?: false,
-            isInWindow = prefs[Keys.IsInWindow] ?: false,
-            isArmed = prefs[Keys.IsArmed] ?: false,
-            lastTriggerTime = prefs[Keys.LastTriggerTime],
-            countdownStartedAt = prefs[Keys.CountdownStartedAt],
-            scheduledPowerOnAcked = prefs[Keys.ScheduledPowerOnAcked] ?: false,
-            oemKillerAcked = prefs[Keys.OemKillerAcked] ?: false,
-            firstShutdownConfirmed = prefs[Keys.FirstShutdownConfirmed] ?: false,
-        )
-    }
+    val state: Flow<PersistedState> =
+        context.dataStore.data.map { prefs ->
+            PersistedState(
+                windowStartMinutes = prefs[Keys.WindowStartMinutes] ?: DEFAULT_WINDOW_START,
+                windowEndMinutes = prefs[Keys.WindowEndMinutes] ?: DEFAULT_WINDOW_END,
+                inactivityTimeoutSeconds = prefs[Keys.InactivityTimeoutSeconds] ?: DEFAULT_INACTIVITY,
+                enabled = prefs[Keys.Enabled] ?: false,
+                isInWindow = prefs[Keys.IsInWindow] ?: false,
+                isArmed = prefs[Keys.IsArmed] ?: false,
+                lastTriggerTime = prefs[Keys.LastTriggerTime],
+                countdownStartedAt = prefs[Keys.CountdownStartedAt],
+                scheduledPowerOnAcked = prefs[Keys.ScheduledPowerOnAcked] ?: false,
+                oemKillerAcked = prefs[Keys.OemKillerAcked] ?: false,
+                firstShutdownConfirmed = prefs[Keys.FirstShutdownConfirmed] ?: false,
+            )
+        }
 
-    suspend fun setWindow(startMinutes: Int, endMinutes: Int) {
+    suspend fun setWindow(
+        startMinutes: Int,
+        endMinutes: Int,
+    ) {
         context.dataStore.edit {
             it[Keys.WindowStartMinutes] = startMinutes
             it[Keys.WindowEndMinutes] = endMinutes
@@ -70,7 +75,10 @@ class SettingsRepository(private val context: Context) {
         context.dataStore.edit { it[Keys.Enabled] = enabled }
     }
 
-    suspend fun setStatus(isInWindow: Boolean? = null, isArmed: Boolean? = null) {
+    suspend fun setStatus(
+        isInWindow: Boolean? = null,
+        isArmed: Boolean? = null,
+    ) {
         context.dataStore.edit { prefs ->
             isInWindow?.let { prefs[Keys.IsInWindow] = it }
             isArmed?.let { prefs[Keys.IsArmed] = it }
@@ -79,8 +87,11 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setCountdownStartedAt(epochMillis: Long?) {
         context.dataStore.edit { prefs ->
-            if (epochMillis == null) prefs.remove(Keys.CountdownStartedAt)
-            else prefs[Keys.CountdownStartedAt] = epochMillis
+            if (epochMillis == null) {
+                prefs.remove(Keys.CountdownStartedAt)
+            } else {
+                prefs[Keys.CountdownStartedAt] = epochMillis
+            }
         }
     }
 
@@ -101,9 +112,9 @@ class SettingsRepository(private val context: Context) {
     }
 
     companion object {
-        const val DEFAULT_WINDOW_START = 21 * 60         // 21:00
-        const val DEFAULT_WINDOW_END = 5 * 60 + 30       // 05:30
-        const val DEFAULT_INACTIVITY = 5 * 60            // 5 min
+        const val DEFAULT_WINDOW_START = 21 * 60 // 21:00
+        const val DEFAULT_WINDOW_END = 5 * 60 + 30 // 05:30
+        const val DEFAULT_INACTIVITY = 5 * 60 // 5 min
         const val MIN_INACTIVITY_MINUTES = 1
         const val MAX_INACTIVITY_MINUTES = 15
     }

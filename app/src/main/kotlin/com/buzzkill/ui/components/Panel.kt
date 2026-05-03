@@ -34,24 +34,25 @@ fun Panel(
 ) {
     val shape = RoundedCornerShape(6.dp)
     Column(
-        modifier = modifier
+        modifier =
+        modifier
             .clip(shape)
             .background(
                 Brush.verticalGradient(
                     colors = listOf(PanelColors.Background, PanelColors.DeepBackground),
                 ),
-            )
-            .border(width = 1.dp, color = PanelColors.BevelLight, shape = shape)
+            ).border(width = 1.dp, color = PanelColors.BevelLight, shape = shape)
             .padding(2.dp)
             .border(width = 1.dp, color = PanelColors.BevelDark, shape = shape)
             .padding(12.dp),
     ) {
         if (label != null) {
-            val headerModifier = if (onLabelClick != null) {
-                Modifier.fillMaxWidth().clickable(onClick = onLabelClick)
-            } else {
-                Modifier.fillMaxWidth()
-            }
+            val headerModifier =
+                if (onLabelClick != null) {
+                    Modifier.fillMaxWidth().clickable(onClick = onLabelClick)
+                } else {
+                    Modifier.fillMaxWidth()
+                }
             Row(
                 modifier = headerModifier,
                 horizontalArrangement = Arrangement.SpaceBetween,

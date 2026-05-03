@@ -8,7 +8,6 @@ import org.junit.Test
  * The wrap-around case (start > end, e.g. 23:00→05:30) is the gnarly part.
  */
 class MainViewModelWindowMathTest {
-
     // --- isInWindow ---
 
     @Test

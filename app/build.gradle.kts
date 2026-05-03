@@ -6,14 +6,15 @@ plugins {
 
 android {
     namespace = "com.buzzkill"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.buzzkill"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        targetSdk = 36
+        // Override from CI with -PversionName=… / -PversionCode=…
+        versionCode = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 1
+        versionName = (project.findProperty("versionName") as? String) ?: "0.1.0-dev"
     }
 
     buildTypes {

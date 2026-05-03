@@ -52,7 +52,8 @@ fun CircleStepperButton(
     val capOffsetY = if (isPressed) 1.dp else 0.dp
 
     Box(
-        modifier = modifier
+        modifier =
+        modifier
             .size(diameter)
             .clip(androidx.compose.foundation.shape.CircleShape)
             .background(
@@ -61,8 +62,7 @@ fun CircleStepperButton(
                 androidx.compose.ui.graphics.Brush.verticalGradient(
                     colors = listOf(Color(0xFF050402), Color(0xFF2A2218)),
                 ),
-            )
-            .clickable(
+            ).clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick,
@@ -71,20 +71,21 @@ fun CircleStepperButton(
     ) {
         // The cap.
         Box(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .size(diameter - capInset * 2)
                 .offset(y = capOffsetY)
                 .clip(androidx.compose.foundation.shape.CircleShape)
                 .background(
                     androidx.compose.ui.graphics.Brush.verticalGradient(
-                        colors = if (isPressed) {
+                        colors =
+                        if (isPressed) {
                             listOf(Color(0xFF2A2218), Color(0xFF050402))
                         } else {
                             listOf(Color(0xFF6E5B45), Color(0xFF332A22))
                         },
                     ),
-                )
-                .border(
+                ).border(
                     0.5.dp,
                     Color(0xFF050402),
                     androidx.compose.foundation.shape.CircleShape,
@@ -97,10 +98,14 @@ fun CircleStepperButton(
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Black,
                 fontSize = 18.sp,
-                style = androidx.compose.ui.text.TextStyle(
-                    shadow = androidx.compose.ui.graphics.Shadow(
+                style =
+                androidx.compose.ui.text.TextStyle(
+                    shadow =
+                    androidx.compose.ui.graphics.Shadow(
                         color = Color(0xCC000000),
-                        offset = androidx.compose.ui.geometry.Offset(0f, -1f),
+                        offset =
+                        androidx.compose.ui.geometry
+                            .Offset(0f, -1f),
                         blurRadius = 0f,
                     ),
                 ),
@@ -121,21 +126,24 @@ fun HardwareButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    val (top, bottom, accent) = when (style) {
-        HardwareButtonStyle.Neutral -> Triple(Color(0xFF3A3026), Color(0xFF1A1612), Color(0xFFCCBBAA))
-        HardwareButtonStyle.Danger -> Triple(Color(0xFF7A2018), Color(0xFF2A0A04), Color(0xFFFFCCBB))
-        HardwareButtonStyle.Confirm -> Triple(Color(0xFF1A4A2A), Color(0xFF050E08), Color(0xFFCCFFCC))
-    }
-    val gradient = if (isPressed) {
-        Brush.verticalGradient(listOf(bottom, top))
-    } else {
-        Brush.verticalGradient(listOf(top, bottom))
-    }
+    val (top, bottom, accent) =
+        when (style) {
+            HardwareButtonStyle.Neutral -> Triple(Color(0xFF3A3026), Color(0xFF1A1612), Color(0xFFCCBBAA))
+            HardwareButtonStyle.Danger -> Triple(Color(0xFF7A2018), Color(0xFF2A0A04), Color(0xFFFFCCBB))
+            HardwareButtonStyle.Confirm -> Triple(Color(0xFF1A4A2A), Color(0xFF050E08), Color(0xFFCCFFCC))
+        }
+    val gradient =
+        if (isPressed) {
+            Brush.verticalGradient(listOf(bottom, top))
+        } else {
+            Brush.verticalGradient(listOf(top, bottom))
+        }
     val alpha = if (enabled) 1f else 0.4f
     val shape = RoundedCornerShape(4.dp)
 
     Box(
-        modifier = modifier
+        modifier =
+        modifier
             .clip(shape)
             .background(gradient)
             .border(1.dp, Color(0xFF050402).copy(alpha = alpha), shape)
@@ -144,8 +152,7 @@ fun HardwareButton(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick,
-            )
-            .padding(contentPadding),
+            ).padding(contentPadding),
         contentAlignment = Alignment.Center,
     ) {
         Text(

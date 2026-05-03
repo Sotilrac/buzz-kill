@@ -1,6 +1,7 @@
 package com.buzzkill
 
 import android.Manifest
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
@@ -15,7 +16,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import android.content.Intent
 import com.buzzkill.oem.ScheduledPowerOnIntents
 import com.buzzkill.service.Broadcasts
 import com.buzzkill.ui.screens.MainScreen
@@ -25,9 +25,10 @@ import com.buzzkill.ui.theme.BuzzKillTheme
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
-    private val notificationsLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { _ -> refreshPermissions() }
+    private val notificationsLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission(),
+        ) { _ -> refreshPermissions() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -80,20 +81,22 @@ class MainActivity : ComponentActivity() {
             PermissionItem.ScheduledPowerOn -> {
                 val launched = ScheduledPowerOnIntents.launch(this)
                 if (!launched) {
-                    Toast.makeText(
-                        this,
-                        "Open Settings → Additional settings → Scheduled power on/off",
-                        Toast.LENGTH_LONG,
-                    ).show()
+                    Toast
+                        .makeText(
+                            this,
+                            "Open Settings → Additional settings → Scheduled power on/off",
+                            Toast.LENGTH_LONG,
+                        ).show()
                 }
                 viewModel.setScheduledPowerOnAcked(true)
             }
             PermissionItem.OemKiller -> {
-                Toast.makeText(
-                    this,
-                    "See dontkillmyapp.com/oneplus and lock BuzzKill in Recents.",
-                    Toast.LENGTH_LONG,
-                ).show()
+                Toast
+                    .makeText(
+                        this,
+                        "See dontkillmyapp.com/oneplus and lock BuzzKill in Recents.",
+                        Toast.LENGTH_LONG,
+                    ).show()
                 viewModel.setOemKillerAcked(true)
             }
         }

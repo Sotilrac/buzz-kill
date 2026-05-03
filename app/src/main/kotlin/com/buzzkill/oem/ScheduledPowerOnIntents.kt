@@ -14,7 +14,6 @@ import android.provider.Settings
  * To add a new OEM: extend [intentsFor]. No changes required elsewhere.
  */
 object ScheduledPowerOnIntents {
-
     /**
      * Try the OEM-specific intents in order. Returns true if one was launched, false if all
      * resolution attempts failed.
@@ -30,72 +29,83 @@ object ScheduledPowerOnIntents {
         return false
     }
 
-    private fun resolveAndStart(context: Context, intent: Intent): Boolean {
+    private fun resolveAndStart(
+        context: Context,
+        intent: Intent,
+    ): Boolean {
         val flags = Intent.FLAG_ACTIVITY_NEW_TASK
         val withFlags = Intent(intent).addFlags(flags)
         return try {
             if (withFlags.resolveActivity(context.packageManager) != null) {
                 context.startActivity(withFlags)
                 true
-            } else false
+            } else {
+                false
+            }
         } catch (_: SecurityException) {
             false
         }
     }
 
-    private fun intentsFor(oem: Oem): List<Intent> = when (oem) {
-        Oem.OnePlus -> listOf(
-            // Known component on OxygenOS / ColorOS-merged builds.
-            Intent().setComponent(
-                ComponentName(
-                    "com.oneplus.timerpoweronoff",
-                    "com.oneplus.timerpoweronoff.TimerPowerOnOffActivity",
-                ),
-            ),
-            Intent().setComponent(
-                ComponentName(
-                    "com.oneplus.timerpoweronoff",
-                    "com.coloros.alarmclock.TimerPowerOnOffActivity",
-                ),
-            ),
-            Intent("oneplus.intent.action.SCHEDULED_POWER_ON_OFF"),
-            Intent("oppo.intent.action.SCHEDULED_POWER_ON_OFF"),
-        )
-        Oem.Oppo, Oem.Realme -> listOf(
-            Intent().setComponent(
-                ComponentName(
-                    "com.coloros.alarmclock",
-                    "com.coloros.alarmclock.TimerPowerOnOffActivity",
-                ),
-            ),
-            Intent("oppo.intent.action.SCHEDULED_POWER_ON_OFF"),
-        )
-        Oem.Xiaomi -> listOf(
-            Intent().setComponent(
-                ComponentName(
-                    "com.android.deskclock",
-                    "com.android.deskclock.PowerOnOffSettingActivity",
-                ),
-            ),
-            Intent("miui.intent.action.POWER_ONOFF_TIMER"),
-        )
-        Oem.Samsung -> listOf(
-            // Samsung exposes auto-restart, not full scheduled power on.
-            Intent().setComponent(
-                ComponentName(
-                    "com.samsung.android.lool",
-                    "com.samsung.android.sm.battery.ui.BatteryActivity",
-                ),
-            ),
-        )
-        Oem.Huawei -> listOf(
-            Intent().setComponent(
-                ComponentName(
-                    "com.huawei.deskclock",
-                    "com.huawei.deskclock.smartcover.PowerOnOffActivity",
-                ),
-            ),
-        )
-        Oem.Vivo, Oem.Pixel, Oem.Generic -> emptyList()
-    }
+    private fun intentsFor(oem: Oem): List<Intent> =
+        when (oem) {
+            Oem.OnePlus ->
+                listOf(
+                    // Known component on OxygenOS / ColorOS-merged builds.
+                    Intent().setComponent(
+                        ComponentName(
+                            "com.oneplus.timerpoweronoff",
+                            "com.oneplus.timerpoweronoff.TimerPowerOnOffActivity",
+                        ),
+                    ),
+                    Intent().setComponent(
+                        ComponentName(
+                            "com.oneplus.timerpoweronoff",
+                            "com.coloros.alarmclock.TimerPowerOnOffActivity",
+                        ),
+                    ),
+                    Intent("oneplus.intent.action.SCHEDULED_POWER_ON_OFF"),
+                    Intent("oppo.intent.action.SCHEDULED_POWER_ON_OFF"),
+                )
+            Oem.Oppo, Oem.Realme ->
+                listOf(
+                    Intent().setComponent(
+                        ComponentName(
+                            "com.coloros.alarmclock",
+                            "com.coloros.alarmclock.TimerPowerOnOffActivity",
+                        ),
+                    ),
+                    Intent("oppo.intent.action.SCHEDULED_POWER_ON_OFF"),
+                )
+            Oem.Xiaomi ->
+                listOf(
+                    Intent().setComponent(
+                        ComponentName(
+                            "com.android.deskclock",
+                            "com.android.deskclock.PowerOnOffSettingActivity",
+                        ),
+                    ),
+                    Intent("miui.intent.action.POWER_ONOFF_TIMER"),
+                )
+            Oem.Samsung ->
+                listOf(
+                    // Samsung exposes auto-restart, not full scheduled power on.
+                    Intent().setComponent(
+                        ComponentName(
+                            "com.samsung.android.lool",
+                            "com.samsung.android.sm.battery.ui.BatteryActivity",
+                        ),
+                    ),
+                )
+            Oem.Huawei ->
+                listOf(
+                    Intent().setComponent(
+                        ComponentName(
+                            "com.huawei.deskclock",
+                            "com.huawei.deskclock.smartcover.PowerOnOffActivity",
+                        ),
+                    ),
+                )
+            Oem.Vivo, Oem.Pixel, Oem.Generic -> emptyList()
+        }
 }

@@ -14,7 +14,6 @@ import androidx.core.content.ContextCompat
 import com.buzzkill.service.ShutdownAccessibilityService
 
 object PermissionsHelper {
-
     fun isAccessibilityEnabled(context: Context): Boolean {
         // Reading Settings.Secure is the canonical, version-stable check. The
         // AccessibilityManager.getEnabledAccessibilityServiceList() API returns
@@ -23,10 +22,11 @@ object PermissionsHelper {
         // returns to a different activity. The Secure setting flips the moment
         // the toggle is on, which is what we want for the checklist UI.
         val expectedId = "${context.packageName}/${ShutdownAccessibilityService::class.java.name}"
-        val enabled = Settings.Secure.getString(
-            context.contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
-        ) ?: return false
+        val enabled =
+            Settings.Secure.getString(
+                context.contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+            ) ?: return false
         val splitter = TextUtils.SimpleStringSplitter(':').apply { setString(enabled) }
         for (id in splitter) {
             if (id.equals(expectedId, ignoreCase = true)) return true
@@ -55,9 +55,10 @@ object PermissionsHelper {
     }
 
     fun requestBatteryOptimizationExempt(activity: Activity) {
-        val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-            data = Uri.parse("package:${activity.packageName}")
-        }
+        val intent =
+            Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                data = Uri.parse("package:${activity.packageName}")
+            }
         try {
             activity.startActivity(intent)
         } catch (_: Exception) {

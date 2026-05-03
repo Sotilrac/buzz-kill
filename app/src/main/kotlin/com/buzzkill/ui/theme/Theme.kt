@@ -10,22 +10,23 @@ import com.buzzkill.R
 
 val TiltNeonFamily = FontFamily(Font(R.font.tilt_neon))
 
-private val BuzzKillColorScheme = darkColorScheme(
-    primary = Color(0xFFFFAA22),       // amber LCD
-    onPrimary = Color(0xFF1A0E00),
-    secondary = Color(0xFF22FF66),     // green LED
-    onSecondary = Color(0xFF002211),
-    tertiary = Color(0xFFFF3322),      // red LED / danger
-    onTertiary = Color(0xFF220000),
-    background = Color(0xFF0A0806),
-    onBackground = Color(0xFFCCBBAA),
-    surface = Color(0xFF14110D),
-    onSurface = Color(0xFFCCBBAA),
-    surfaceVariant = Color(0xFF1A1612),
-    onSurfaceVariant = Color(0xFF998877),
-    error = Color(0xFFFF3322),
-    outline = Color(0xFF332A22),
-)
+private val BuzzKillColorScheme =
+    darkColorScheme(
+        primary = Color(0xFFFFAA22), // amber LCD
+        onPrimary = Color(0xFF1A0E00),
+        secondary = Color(0xFF22FF66), // green LED
+        onSecondary = Color(0xFF002211),
+        tertiary = Color(0xFFFF3322), // red LED / danger
+        onTertiary = Color(0xFF220000),
+        background = Color(0xFF0A0806),
+        onBackground = Color(0xFFCCBBAA),
+        surface = Color(0xFF14110D),
+        onSurface = Color(0xFFCCBBAA),
+        surfaceVariant = Color(0xFF1A1612),
+        onSurfaceVariant = Color(0xFF998877),
+        error = Color(0xFFFF3322),
+        outline = Color(0xFF332A22),
+    )
 
 @Composable
 fun BuzzKillTheme(content: @Composable () -> Unit) {

@@ -4,7 +4,6 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class PowerDialogStringsTest {
-
     @Test
     fun `OnePlus primaryActions include power off (English) and shutdown variants`() {
         val s = PowerDialogStrings.stringsFor(Oem.OnePlus)
@@ -49,11 +48,12 @@ class PowerDialogStringsTest {
     @Test
     fun `OnePlus is the only OEM mapped to the SlideDown gesture fallback`() {
         for (oem in Oem.entries) {
-            val expected = if (oem == Oem.OnePlus) {
-                PowerDialogStrings.GestureFallback.SlideDown
-            } else {
-                PowerDialogStrings.GestureFallback.None
-            }
+            val expected =
+                if (oem == Oem.OnePlus) {
+                    PowerDialogStrings.GestureFallback.SlideDown
+                } else {
+                    PowerDialogStrings.GestureFallback.None
+                }
             assertThat(PowerDialogStrings.gestureFallbackFor(oem)).isEqualTo(expected)
         }
     }
@@ -61,8 +61,9 @@ class PowerDialogStringsTest {
     @Test
     fun `slide-down markers cover the OnePlus instruction text variants we have observed`() {
         // Real string captured from OxygenOS power dialog.
-        val observed = "swipe up with two fingers to restart your device. " +
-            "swipe down with two fingers to power it off."
+        val observed =
+            "swipe up with two fingers to restart your device. " +
+                "swipe down with two fingers to power it off."
         val matched = PowerDialogStrings.slideDownMarkers.any { observed.contains(it) }
         assertThat(matched).isTrue()
     }

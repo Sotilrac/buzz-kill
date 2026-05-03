@@ -19,7 +19,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class ShutdownAccessibilityService : AccessibilityService() {
-
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var repo: SettingsRepository
     private lateinit var alarms: AlarmScheduler
@@ -37,23 +36,27 @@ class ShutdownAccessibilityService : AccessibilityService() {
             private set
     }
 
-    private val receiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            when (intent.action) {
-                Intent.ACTION_SCREEN_OFF -> onScreenOff()
-                // Only cancel on a real unlock (USER_PRESENT). ACTION_SCREEN_ON
-                // fires for incidental wakes — notifications, AOD, lift-to-wake,
-                // fingerprint sensor — and used to abort our timer for free.
-                Intent.ACTION_USER_PRESENT -> onUserPresent()
-                Broadcasts.WINDOW_OPEN -> onWindowOpen()
-                Broadcasts.WINDOW_CLOSE -> onWindowClose()
-                // INACTIVITY_FIRED is owned by InactivityReceiver (manifest-registered)
-                // so OEM process-killing can't drop the alarm on the floor.
-                Broadcasts.TEST_TRIGGER_DRY_RUN -> onTestTrigger(dryRun = true)
-                Broadcasts.TEST_TRIGGER_LIVE -> onTestTrigger(dryRun = false)
+    private val receiver =
+        object : BroadcastReceiver() {
+            override fun onReceive(
+                context: Context,
+                intent: Intent,
+            ) {
+                when (intent.action) {
+                    Intent.ACTION_SCREEN_OFF -> onScreenOff()
+                    // Only cancel on a real unlock (USER_PRESENT). ACTION_SCREEN_ON
+                    // fires for incidental wakes — notifications, AOD, lift-to-wake,
+                    // fingerprint sensor — and used to abort our timer for free.
+                    Intent.ACTION_USER_PRESENT -> onUserPresent()
+                    Broadcasts.WINDOW_OPEN -> onWindowOpen()
+                    Broadcasts.WINDOW_CLOSE -> onWindowClose()
+                    // INACTIVITY_FIRED is owned by InactivityReceiver (manifest-registered)
+                    // so OEM process-killing can't drop the alarm on the floor.
+                    Broadcasts.TEST_TRIGGER_DRY_RUN -> onTestTrigger(dryRun = true)
+                    Broadcasts.TEST_TRIGGER_LIVE -> onTestTrigger(dryRun = false)
+                }
             }
         }
-    }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -61,14 +64,15 @@ class ShutdownAccessibilityService : AccessibilityService() {
         repo = SettingsRepository(applicationContext)
         alarms = AlarmScheduler(applicationContext)
 
-        val filter = IntentFilter().apply {
-            addAction(Intent.ACTION_SCREEN_OFF)
-            addAction(Intent.ACTION_USER_PRESENT)
-            addAction(Broadcasts.WINDOW_OPEN)
-            addAction(Broadcasts.WINDOW_CLOSE)
-            addAction(Broadcasts.TEST_TRIGGER_DRY_RUN)
-            addAction(Broadcasts.TEST_TRIGGER_LIVE)
-        }
+        val filter =
+            IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_OFF)
+                addAction(Intent.ACTION_USER_PRESENT)
+                addAction(Broadcasts.WINDOW_OPEN)
+                addAction(Broadcasts.WINDOW_CLOSE)
+                addAction(Broadcasts.TEST_TRIGGER_DRY_RUN)
+                addAction(Broadcasts.TEST_TRIGGER_LIVE)
+            }
         registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
 
         Log.i(TAG, "service connected")
@@ -162,19 +166,19 @@ class ShutdownAccessibilityService : AccessibilityService() {
         Log.i(TAG, "test trigger (dryRun=$dryRun)")
         scope.launch {
             val result = PowerOffSequence(this@ShutdownAccessibilityService).run(dryRun = dryRun)
-            val msg = when (result) {
-                is PowerOffSequence.Result.DryRun ->
-                    "Match: '${result.matchedText}' via ${result.mode}. Strings OK."
-                is PowerOffSequence.Result.NotFound ->
-                    "No match. Visited (${result.visited.size} nodes): ${result.visited.take(12)}"
-                is PowerOffSequence.Result.DialogDidNotOpen -> "Power dialog did not open."
-                is PowerOffSequence.Result.Triggered ->
-                    "Triggered: '${result.matchedText}' via ${result.mode}"
-            }
+            val msg =
+                when (result) {
+                    is PowerOffSequence.Result.DryRun ->
+                        "Match: '${result.matchedText}' via ${result.mode}. Strings OK."
+                    is PowerOffSequence.Result.NotFound ->
+                        "No match. Visited (${result.visited.size} nodes): ${result.visited.take(12)}"
+                    is PowerOffSequence.Result.DialogDidNotOpen -> "Power dialog did not open."
+                    is PowerOffSequence.Result.Triggered ->
+                        "Triggered: '${result.matchedText}' via ${result.mode}"
+                }
             withContext(Dispatchers.Main) {
                 Toast.makeText(this@ShutdownAccessibilityService, msg, Toast.LENGTH_LONG).show()
             }
         }
     }
-
 }

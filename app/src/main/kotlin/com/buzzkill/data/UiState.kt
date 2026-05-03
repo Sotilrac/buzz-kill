@@ -5,19 +5,27 @@ package com.buzzkill.data
  */
 sealed class StatusLine {
     /** Permissions incomplete; show checklist. */
-    data class NeedsSetup(val missing: List<String>) : StatusLine()
+    data class NeedsSetup(
+        val missing: List<String>,
+    ) : StatusLine()
 
     /** Master toggle off. */
     data object Disabled : StatusLine()
 
     /** Outside the active window; counting down to next window-open. */
-    data class Armed(val nextOpenMinutes: Int) : StatusLine()
+    data class Armed(
+        val nextOpenMinutes: Int,
+    ) : StatusLine()
 
     /** Inside the window; foreground service is running. */
-    data class Active(val minutesRemainingInWindow: Int) : StatusLine()
+    data class Active(
+        val minutesRemainingInWindow: Int,
+    ) : StatusLine()
 
     /** Inside the window AND the inactivity countdown is currently running. */
-    data class Counting(val secondsRemaining: Int) : StatusLine()
+    data class Counting(
+        val secondsRemaining: Int,
+    ) : StatusLine()
 }
 
 data class UiState(
@@ -34,15 +42,20 @@ data class PermissionStatus(
     val oemKillerAcked: Boolean,
 ) {
     val allGranted: Boolean
-        get() = accessibilityEnabled && batteryOptimizationExempt && notificationsGranted &&
-            scheduledPowerOnAcked && oemKillerAcked
+        get() =
+            accessibilityEnabled &&
+                batteryOptimizationExempt &&
+                notificationsGranted &&
+                scheduledPowerOnAcked &&
+                oemKillerAcked
 
     val missingItems: List<String>
-        get() = buildList {
-            if (!accessibilityEnabled) add("Accessibility service")
-            if (!batteryOptimizationExempt) add("Battery optimization")
-            if (!notificationsGranted) add("Notifications")
-            if (!scheduledPowerOnAcked) add("Scheduled power-on")
-            if (!oemKillerAcked) add("Battery-killer override")
-        }
+        get() =
+            buildList {
+                if (!accessibilityEnabled) add("Accessibility service")
+                if (!batteryOptimizationExempt) add("Battery optimization")
+                if (!notificationsGranted) add("Notifications")
+                if (!scheduledPowerOnAcked) add("Scheduled power-on")
+                if (!oemKillerAcked) add("Battery-killer override")
+            }
 }

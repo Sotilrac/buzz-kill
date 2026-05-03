@@ -1,0 +1,148 @@
+# GitLab CI/CD for BuzzKill.
+#
+# Stages on every push:
+#   lint  → ktlintCheck (style) + Android lint (non-blocking)
+#   test  → unit tests (JUnit report integrated into MR/Pipeline UI)
+#   build → debug APK uploaded as a job artifact
+#
+# On a git tag (e.g. `v0.2.0`):
+#   build-release → builds an APK named buzzkill-${TAG}.apk with versionName=${TAG#v}
+#                   and uploads it to GitLab's Generic Package Registry
+#   release       → creates a GitLab Release entry for the tag with the APK linked
+#
+# Image: mingc/android-build-box ships JDK 21 + Android SDK pre-installed.
+
+default:
+  image: mingc/android-build-box:latest
+  cache:
+    key:
+      files:
+        - gradle/libs.versions.toml
+        - gradle/wrapper/gradle-wrapper.properties
+    paths:
+      - .gradle/caches
+      - .gradle/wrapper
+  before_script:
+    - chmod +x ./gradlew
+
+variables:
+  GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true"
+
+stages:
+  - lint
+  - test
+  - build
+  - release
+
+# -- lint stage -------------------------------------------------------------
+
+ktlint:
+  stage: lint
+  script:
+    - ./gradlew :app:ktlintCheck
+  artifacts:
+    when: on_failure
+    paths:
+      - app/build/reports/ktlint/
+    expire_in: 1 week
+
+android-lint:
+  stage: lint
+  script:
+    - ./gradlew :app:lintDebug
+  artifacts:
+    when: always
+    paths:
+      - app/build/reports/lint-results-debug.html
+    expire_in: 1 week
+  # Android Lint is informative; don't fail the pipeline on it.
+  allow_failure: true
+
+# -- test stage -------------------------------------------------------------
+
+unit-tests:
+  stage: test
+  script:
+    - ./gradlew :app:testDebugUnitTest
+  artifacts:
+    when: always
+    paths:
+      - app/build/reports/tests/
+    reports:
+      junit: app/build/test-results/testDebugUnitTest/TEST-*.xml
+    expire_in: 1 week
+
+# -- build stage ------------------------------------------------------------
+
+build-debug:
+  stage: build
+  rules:
+    # Skip on tag pipelines; the release flow builds its own tagged artifact.
+    - if: $CI_COMMIT_TAG
+      when: never
+    - when: on_success
+  script:
+    - ./gradlew :app:assembleDebug
+  artifacts:
+    paths:
+      - app/build/outputs/apk/debug/*.apk
+    expire_in: 1 week
+
+build-release:
+  stage: build
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    # Strip a leading `v` from tags like `v0.2.0`, leaving "0.2.0" as versionName.
+    - VERSION_NAME="${CI_COMMIT_TAG#v}"
+    # Pack a 6-digit versionCode from the tag if it's MAJOR.MINOR.PATCH; fall back
+    # to the timestamp otherwise. Both are int and monotonically increasing.
+    - |
+      if [[ "$VERSION_NAME" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+        VERSION_CODE=$(( ${BASH_REMATCH[1]}*10000 + ${BASH_REMATCH[2]}*100 + ${BASH_REMATCH[3]} ))
+      else
+        VERSION_CODE=$(date +%s)
+      fi
+    - echo "Building $CI_COMMIT_TAG → versionName=$VERSION_NAME versionCode=$VERSION_CODE"
+    - ./gradlew :app:assembleDebug -PversionName="$VERSION_NAME" -PversionCode="$VERSION_CODE"
+    - cp app/build/outputs/apk/debug/app-debug.apk "buzzkill-${CI_COMMIT_TAG}.apk"
+    # Upload to the GitLab Generic Package Registry so the release links resolve
+    # to a stable URL (independent of any single CI job's lifetime).
+    - |
+      curl --fail --show-error \
+        --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+        --upload-file "buzzkill-${CI_COMMIT_TAG}.apk" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/buzzkill/${CI_COMMIT_TAG}/buzzkill-${CI_COMMIT_TAG}.apk"
+  artifacts:
+    paths:
+      - "buzzkill-*.apk"
+    expire_in: never
+
+# -- release stage ----------------------------------------------------------
+
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+  needs:
+    - job: build-release
+      artifacts: true
+  before_script: []
+  script:
+    - echo "Publishing GitLab Release for $CI_COMMIT_TAG"
+  release:
+    tag_name: "$CI_COMMIT_TAG"
+    name: "BuzzKill $CI_COMMIT_TAG"
+    description: |
+      Built from $CI_COMMIT_SHA. Side-load the APK below.
+
+      ```bash
+      adb install buzzkill-${CI_COMMIT_TAG}.apk
+      ```
+    assets:
+      links:
+        - name: "buzzkill-${CI_COMMIT_TAG}.apk"
+          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/buzzkill/${CI_COMMIT_TAG}/buzzkill-${CI_COMMIT_TAG}.apk"
+          link_type: package

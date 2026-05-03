@@ -57,7 +57,10 @@ fun LedSwitch(
 }
 
 @Composable
-private fun SwitchBody(isOn: Boolean, onToggle: () -> Unit) {
+private fun SwitchBody(
+    isOn: Boolean,
+    onToggle: () -> Unit,
+) {
     // Outer recess (the "panel hole") + inner track + knob, mirroring the layered
     // bezel/cap pattern used by CircleStepperButton.
     val outerWidth = 44.dp
@@ -76,31 +79,32 @@ private fun SwitchBody(isOn: Boolean, onToggle: () -> Unit) {
 
     // Outer recess: dark vertical gradient suggesting a hole in the front panel.
     Box(
-        modifier = Modifier
+        modifier =
+        Modifier
             .size(outerWidth, outerHeight)
             .clip(RoundedCornerShape(6.dp))
             .background(
                 Brush.verticalGradient(
                     colors = listOf(Color(0xFF050402), Color(0xFF2A2218)),
                 ),
-            )
-            .clickable(onClick = onToggle),
+            ).clickable(onClick = onToggle),
         contentAlignment = Alignment.Center,
     ) {
         // Inner track sits inside the recess.
         Box(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .size(trackWidth, trackHeight)
                 .clip(RoundedCornerShape(4.dp))
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(Color(0xFF050402), Color(0xFF14110D)),
                     ),
-                )
-                .border(0.5.dp, Color(0xFF050402), RoundedCornerShape(4.dp)),
+                ).border(0.5.dp, Color(0xFF050402), RoundedCornerShape(4.dp)),
         ) {
             Box(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .padding(top = travel * offsetFraction)
                     .size(width = trackWidth - 4.dp, height = knobHeight)
                     .clip(RoundedCornerShape(3.dp))
@@ -108,8 +112,7 @@ private fun SwitchBody(isOn: Boolean, onToggle: () -> Unit) {
                         Brush.verticalGradient(
                             colors = listOf(Color(0xFF6E5B45), Color(0xFF332A22)),
                         ),
-                    )
-                    .border(1.dp, Color(0xFF14110D), RoundedCornerShape(3.dp))
+                    ).border(1.dp, Color(0xFF14110D), RoundedCornerShape(3.dp))
                     .align(Alignment.TopCenter),
             ) {
                 Column(

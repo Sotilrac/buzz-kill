@@ -1,0 +1,29 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+[*.{kt,kts}]
+# Use IntelliJ's Kotlin code style — closer to community-default than ktlint's
+# stricter "official" style.
+ktlint_code_style = intellij_idea
+
+# Opinionated rules that conflict with one-liner signatures and conventional
+# multi-line expression formatting. Disable the noisy ones; keep the basics.
+ktlint_standard_class-signature = disabled
+ktlint_standard_function-signature = disabled
+ktlint_standard_trailing-comma-on-declaration-site = disabled
+ktlint_standard_trailing-comma-on-call-site = disabled
+ktlint_standard_multiline-expression-wrapping = disabled
+ktlint_standard_multiline-if-else = disabled
+ktlint_standard_if-else-wrapping = disabled
+ktlint_standard_no-empty-first-line-in-class-body = disabled
+ktlint_standard_no-multi-spaces = disabled
+
+# Compose-friendly: function names that are PascalCase composables are normal.
+ktlint_standard_function-naming = disabled

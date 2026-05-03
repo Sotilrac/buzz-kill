@@ -23,7 +23,10 @@ import kotlinx.coroutines.withTimeoutOrNull
  * briefly for the bind, then run the shutdown sequence directly on the service.
  */
 class InactivityReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         if (intent.action != Broadcasts.INACTIVITY_FIRED) return
         Log.i(TAG, "inactivity broadcast received")
         val pending = goAsync()
@@ -58,7 +61,8 @@ class InactivityReceiver : BroadcastReceiver() {
                 if (s != null) return@withTimeoutOrNull s
                 delay(100)
             }
-            @Suppress("UNREACHABLE_CODE") null
+            @Suppress("UNREACHABLE_CODE")
+            null
         }
 
     companion object {

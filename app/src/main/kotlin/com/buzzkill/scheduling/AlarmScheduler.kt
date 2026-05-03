@@ -23,8 +23,9 @@ import java.util.Calendar
  * "Next alarm" UI, which is an acceptable trade-off for an app whose whole purpose is
  * to power the device off on schedule.
  */
-class AlarmScheduler(private val context: Context) {
-
+class AlarmScheduler(
+    private val context: Context,
+) {
     private val alarmManager: AlarmManager =
         context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
@@ -58,7 +59,10 @@ class AlarmScheduler(private val context: Context) {
     }
 
     /** One-shot, fired inactivityTimeoutSeconds after [referenceMillis]. */
-    fun scheduleInactivity(referenceMillis: Long, inactivityTimeoutSeconds: Int) {
+    fun scheduleInactivity(
+        referenceMillis: Long,
+        inactivityTimeoutSeconds: Int,
+    ) {
         val triggerAt = referenceMillis + inactivityTimeoutSeconds * 1000L
         val pi = broadcastPending(REQ_INACTIVITY, Broadcasts.INACTIVITY_FIRED)
         alarmManager.setAlarmClock(
@@ -72,7 +76,11 @@ class AlarmScheduler(private val context: Context) {
         alarmManager.cancel(broadcastPending(REQ_INACTIVITY, Broadcasts.INACTIVITY_FIRED))
     }
 
-    private fun scheduleDaily(requestCode: Int, minuteOfDay: Int, action: String) {
+    private fun scheduleDaily(
+        requestCode: Int,
+        minuteOfDay: Int,
+        action: String,
+    ) {
         val triggerAt = nextOccurrenceMillis(minuteOfDay)
         val pi = broadcastPending(requestCode, action)
         alarmManager.setAlarmClock(
@@ -82,32 +90,36 @@ class AlarmScheduler(private val context: Context) {
     }
 
     private fun nextOccurrenceMillis(minuteOfDay: Int): Long {
-        val cal = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, minuteOfDay / 60)
-            set(Calendar.MINUTE, minuteOfDay % 60)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
+        val cal =
+            Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, minuteOfDay / 60)
+                set(Calendar.MINUTE, minuteOfDay % 60)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
         if (cal.timeInMillis <= System.currentTimeMillis()) {
             cal.add(Calendar.DAY_OF_YEAR, 1)
         }
         return cal.timeInMillis
     }
 
-    private fun broadcastPending(requestCode: Int, action: String): PendingIntent {
+    private fun broadcastPending(
+        requestCode: Int,
+        action: String,
+    ): PendingIntent {
         val intent = internalIntent(action)
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         return PendingIntent.getBroadcast(context, requestCode, intent, flags)
     }
 
-    private fun internalIntent(action: String): Intent =
-        Intent(action).setPackage(context.packageName)
+    private fun internalIntent(action: String): Intent = Intent(action).setPackage(context.packageName)
 
     /** Used as the "show me the alarm" intent on the alarm-clock indicator. */
     private fun openMainActivityPendingIntent(): PendingIntent {
-        val intent = Intent().apply {
-            setClassName(context, "com.buzzkill.MainActivity")
-        }
+        val intent =
+            Intent().apply {
+                setClassName(context, "com.buzzkill.MainActivity")
+            }
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         return PendingIntent.getActivity(context, REQ_SHOW, intent, flags)
     }

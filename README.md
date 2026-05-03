@@ -232,6 +232,37 @@ If you see `inactivity broadcast received` missing entirely after the AlarmManag
 
 If you see `slide attempt 3/3` followed by `slide-down dispatched 3× but dialog still visible`, the gesture isn't engaging the OnePlus slider — likely the lockscreen is intercepting it.
 
+## CI / CD
+
+The repo runs `ktlintCheck`, Android Lint, unit tests, and a debug build on every push via `.gitlab-ci.yml`. JUnit results show up in the GitLab pipeline UI; lint reports attach as job artifacts.
+
+### Cutting a release
+
+Tag a commit on `main` with a `v`-prefixed semver tag:
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+The `build-release` and `release` pipeline jobs will:
+
+1. Build a debug-signed APK with `versionName=0.2.0` and a derived `versionCode`.
+2. Upload `buzzkill-v0.2.0.apk` to the project's GitLab Generic Package Registry.
+3. Create a GitLab Release entry on the tag, with the APK attached as an asset link.
+
+The `versionCode` is computed `MAJOR*10000 + MINOR*100 + PATCH` (so `v0.2.0` → `200`); for non-semver tags it falls back to a Unix timestamp.
+
+### Local equivalents
+
+```bash
+./gradlew :app:ktlintCheck         # style check
+./gradlew :app:ktlintFormat        # auto-fix
+./gradlew :app:lintDebug           # Android Lint
+./gradlew :app:testDebugUnitTest   # unit tests
+./gradlew :app:assembleDebug       # build APK
+```
+
 ## Uninstall
 
 ```bash

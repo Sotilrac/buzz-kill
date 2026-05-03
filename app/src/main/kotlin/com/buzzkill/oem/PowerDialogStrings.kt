@@ -13,38 +13,44 @@ package com.buzzkill.oem
  * coverage out of the box.
  */
 object PowerDialogStrings {
-
     data class StringSet(
         val primaryActions: List<String>,
         val confirmActions: List<String>,
     )
 
-    fun stringsFor(oem: Oem): StringSet = when (oem) {
-        Oem.OnePlus, Oem.Oppo, Oem.Realme -> StringSet(
-            primaryActions = listOf("power off", "shut down", "shutdown", "apagar"),
-            confirmActions = listOf("power off", "ok", "shut down", "tap to power off"),
-        )
-        Oem.Pixel -> StringSet(
-            primaryActions = listOf("power off"),
-            confirmActions = listOf("power off", "ok"),
-        )
-        Oem.Samsung -> StringSet(
-            primaryActions = listOf("power off"),
-            confirmActions = listOf("power off", "ok"),
-        )
-        Oem.Xiaomi -> StringSet(
-            primaryActions = listOf("power off", "shutdown"),
-            confirmActions = listOf("power off", "ok"),
-        )
-        Oem.Huawei -> StringSet(
-            primaryActions = listOf("power off"),
-            confirmActions = listOf("power off", "ok"),
-        )
-        Oem.Vivo, Oem.Generic -> StringSet(
-            primaryActions = listOf("power off", "shut down", "shutdown"),
-            confirmActions = listOf("power off", "ok", "tap to power off"),
-        )
-    }
+    fun stringsFor(oem: Oem): StringSet =
+        when (oem) {
+            Oem.OnePlus, Oem.Oppo, Oem.Realme ->
+                StringSet(
+                    primaryActions = listOf("power off", "shut down", "shutdown", "apagar"),
+                    confirmActions = listOf("power off", "ok", "shut down", "tap to power off"),
+                )
+            Oem.Pixel ->
+                StringSet(
+                    primaryActions = listOf("power off"),
+                    confirmActions = listOf("power off", "ok"),
+                )
+            Oem.Samsung ->
+                StringSet(
+                    primaryActions = listOf("power off"),
+                    confirmActions = listOf("power off", "ok"),
+                )
+            Oem.Xiaomi ->
+                StringSet(
+                    primaryActions = listOf("power off", "shutdown"),
+                    confirmActions = listOf("power off", "ok"),
+                )
+            Oem.Huawei ->
+                StringSet(
+                    primaryActions = listOf("power off"),
+                    confirmActions = listOf("power off", "ok"),
+                )
+            Oem.Vivo, Oem.Generic ->
+                StringSet(
+                    primaryActions = listOf("power off", "shut down", "shutdown"),
+                    confirmActions = listOf("power off", "ok", "tap to power off"),
+                )
+        }
 
     /** Union of all known strings, used as a fallback. */
     val allKnownPrimary: List<String> = Oem.entries.flatMap { stringsFor(it).primaryActions }.distinct()
@@ -56,21 +62,23 @@ object PowerDialogStrings {
      */
     enum class GestureFallback { None, SlideDown }
 
-    fun gestureFallbackFor(oem: Oem): GestureFallback = when (oem) {
-        // OxygenOS 13+ on OnePlus 11 etc.: instruction caption + two-finger swipe.
-        Oem.OnePlus -> GestureFallback.SlideDown
-        else -> GestureFallback.None
-    }
+    fun gestureFallbackFor(oem: Oem): GestureFallback =
+        when (oem) {
+            // OxygenOS 13+ on OnePlus 11 etc.: instruction caption + two-finger swipe.
+            Oem.OnePlus -> GestureFallback.SlideDown
+            else -> GestureFallback.None
+        }
 
     /**
      * Marker substrings (lowercase) that identify a slide-down-to-power-off dialog.
      * On OxygenOS the instruction text says "two fingers" but the actual interaction
      * is a single-finger slide on the centre slider widget.
      */
-    val slideDownMarkers: List<String> = listOf(
-        "two fingers to power it off",
-        "two fingers to power off",
-        "swipe down with two fingers",
-        "slide down to power off",
-    )
+    val slideDownMarkers: List<String> =
+        listOf(
+            "two fingers to power it off",
+            "two fingers to power off",
+            "swipe down with two fingers",
+            "slide down to power off",
+        )
 }

@@ -2,8 +2,8 @@ package com.buzzkill.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,16 +19,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
@@ -78,7 +78,8 @@ fun MainScreen(
     // actually overflows. LazyColumn was always scrollable (with overscroll bounce)
     // even when collapsed content fit comfortably.
     Column(
-        modifier = Modifier
+        modifier =
+        Modifier
             .fillMaxSize()
             .background(Color(0xFF0A0806))
             .padding(WindowInsets.systemBars.asPaddingValues())
@@ -111,18 +112,21 @@ fun MainScreen(
     }
 
     editing?.let { which ->
-        val initial = if (which == TimeEdit.Start)
-            state.persisted.windowStartMinutes
-        else
-            state.persisted.windowEndMinutes
+        val initial =
+            if (which == TimeEdit.Start) {
+                state.persisted.windowStartMinutes
+            } else {
+                state.persisted.windowEndMinutes
+            }
         TimeEditDialog(
             initialMinutes = initial,
             onDismiss = { editing = null },
             onConfirm = { newMinutes ->
-                val (s, e) = when (which) {
-                    TimeEdit.Start -> newMinutes to state.persisted.windowEndMinutes
-                    TimeEdit.End -> state.persisted.windowStartMinutes to newMinutes
-                }
+                val (s, e) =
+                    when (which) {
+                        TimeEdit.Start -> newMinutes to state.persisted.windowEndMinutes
+                        TimeEdit.End -> state.persisted.windowStartMinutes to newMinutes
+                    }
                 onSetWindow(s, e)
                 editing = null
             },
@@ -142,10 +146,14 @@ fun MainScreen(
 }
 
 @Composable
-private fun FirstShutdownDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+private fun FirstShutdownDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
     Dialog(onDismissRequest = onDismiss) {
         Column(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .clip(RoundedCornerShape(8.dp))
                 .background(Color(0xFF14110D))
                 .padding(20.dp),
@@ -160,7 +168,8 @@ private fun FirstShutdownDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
                 letterSpacing = 2.sp,
             )
             Text(
-                text = "Once the timer fires, the phone will fully power off. " +
+                text =
+                "Once the timer fires, the phone will fully power off. " +
                     "It will not turn back on by itself unless you've configured the OEM " +
                     "scheduled power-on. Make sure you've set that and that anything " +
                     "time-sensitive (alarms in another app, on-call rotations) accounts for it.",
@@ -199,7 +208,6 @@ private fun Header() {
         Spacer(Modifier.height(4.dp))
         NeonTitle()
         Spacer(Modifier.height(4.dp))
-        // Bottom tagline — the call to action. Quieter, mixed case.
         Text(
             text = "Reclaim the night. Shut it down.",
             color = Color(0xFFCCBBAA),
@@ -212,6 +220,7 @@ private fun Header() {
 
 @Composable
 private fun NeonTitle() {
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     Row(verticalAlignment = Alignment.Bottom) {
         NeonText(
             text = "BUZZ",
@@ -224,6 +233,17 @@ private fun NeonTitle() {
             glowColor = Color(0xFFFF3322),
             coreColor = Color(0xFFFFE4DC),
             flicker = true,
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = "by carlos asmat",
+            color = Color(0xFF665544),
+            fontFamily = FontFamily.Monospace,
+            fontSize = 9.sp,
+            letterSpacing = 1.sp,
+            modifier = Modifier
+                .padding(bottom = 6.dp)
+                .clickable { uriHandler.openUri("https://asmat.ca") },
         )
     }
 }
@@ -245,11 +265,12 @@ private fun NeonText(
     flicker: Boolean,
 ) {
     val alpha by rememberFlickerAlpha(flicker)
-    val style = androidx.compose.ui.text.TextStyle(
-        fontFamily = TiltNeonFamily,
-        fontSize = 44.sp,
-        letterSpacing = 2.sp,
-    )
+    val style =
+        androidx.compose.ui.text.TextStyle(
+            fontFamily = TiltNeonFamily,
+            fontSize = 44.sp,
+            letterSpacing = 2.sp,
+        )
 
     Box {
         // Outermost bloom.
@@ -335,7 +356,8 @@ private fun SchedulePanel(
         // vertically centres the toggle + status against the left side.
         Row(
             verticalAlignment = Alignment.Top,
-            modifier = Modifier
+            modifier =
+            Modifier
                 .fillMaxWidth()
                 .height(androidx.compose.foundation.layout.IntrinsicSize.Min),
         ) {
@@ -362,7 +384,8 @@ private fun SchedulePanel(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
-                modifier = Modifier
+                modifier =
+                Modifier
                     .weight(1f)
                     .fillMaxHeight(),
             ) {
@@ -382,13 +405,14 @@ private fun SchedulePanel(
 private fun ScheduleStatusText(state: UiState) {
     // Short. The LED next to it already says armed-or-not; we just convey the
     // useful next number.
-    val text = when (val s = state.status) {
-        is StatusLine.NeedsSetup -> "set up first"
-        is StatusLine.Disabled -> "Don't let them win"
-        is StatusLine.Armed -> "opens in\n${formatDuration(s.nextOpenMinutes * 60)}"
-        is StatusLine.Active -> "closes in\n${formatDuration(s.minutesRemainingInWindow * 60)}"
-        is StatusLine.Counting -> "killing in\n${formatDuration(s.secondsRemaining)}"
-    }
+    val text =
+        when (val s = state.status) {
+            is StatusLine.NeedsSetup -> "set up first"
+            is StatusLine.Disabled -> "Don't let them win"
+            is StatusLine.Armed -> "opens in\n${formatDuration(s.nextOpenMinutes * 60)}"
+            is StatusLine.Active -> "closes in\n${formatDuration(s.minutesRemainingInWindow * 60)}"
+            is StatusLine.Counting -> "killing in\n${formatDuration(s.secondsRemaining)}"
+        }
     Text(
         text = text,
         color = Color(0xFF998877),
@@ -402,10 +426,15 @@ private fun ScheduleStatusText(state: UiState) {
 }
 
 @Composable
-private fun LabeledTime(label: String, minutes: Int, onClick: () -> Unit) {
+private fun LabeledTime(
+    label: String,
+    minutes: Int,
+    onClick: () -> Unit,
+) {
     Column(
         verticalArrangement = Arrangement.spacedBy(2.dp),
-        modifier = Modifier
+        modifier =
+        Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
     ) {
@@ -430,7 +459,10 @@ private fun LabeledTime(label: String, minutes: Int, onClick: () -> Unit) {
 }
 
 @Composable
-private fun InactivityStepper(seconds: Int, onChange: (Int) -> Unit) {
+private fun InactivityStepper(
+    seconds: Int,
+    onChange: (Int) -> Unit,
+) {
     val minutes = seconds / 60
     Column(
         verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -473,8 +505,9 @@ private fun InactivityStepper(seconds: Int, onChange: (Int) -> Unit) {
 @Composable
 private fun ScheduleNote() {
     Text(
-        text = "While inside the window, if your screen stays off for the inactivity period, the phone is powered off. " +
-                "\nScheduled a power-on in using the Settings to bring it back automatically in the morning.",
+        text =
+        "While inside the window, if your screen stays off for the inactivity period, the phone is powered off. " +
+            "\nScheduled a power-on in using the Settings to bring it back automatically in the morning.",
         color = Color(0xFF998877),
         fontFamily = FontFamily.Monospace,
         fontSize = 11.sp,
@@ -495,10 +528,11 @@ private fun SetupPanel(
     // Default-expanded while anything is missing; collapsed once everything is set.
     var expanded by remember(pending) { mutableStateOf(pending > 0) }
 
-    val trailing = when {
-        pending > 0 -> "$pending pending  ${if (expanded) "▾" else "▸"}"
-        else -> "all set  ${if (expanded) "▾" else "▸"}"
-    }
+    val trailing =
+        when {
+            pending > 0 -> "$pending pending  ${if (expanded) "▾" else "▸"}"
+            else -> "all set  ${if (expanded) "▾" else "▸"}"
+        }
 
     Panel(
         label = "setup",
@@ -568,11 +602,12 @@ private fun ChecklistRow(
     onFix: () -> Unit,
     onToggleAck: (() -> Unit)? = null,
 ) {
-    val rowModifier = if (onToggleAck != null) {
-        Modifier.fillMaxWidth().clickable(onClick = onToggleAck)
-    } else {
-        Modifier.fillMaxWidth()
-    }
+    val rowModifier =
+        if (onToggleAck != null) {
+            Modifier.fillMaxWidth().clickable(onClick = onToggleAck)
+        } else {
+            Modifier.fillMaxWidth()
+        }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -619,7 +654,10 @@ private fun RowScope.RowLabel(text: String) {
 private enum class TriggerMode { DryRun, Live }
 
 @Composable
-private fun TestTriggerSection(onDryRun: () -> Unit, onLive: () -> Unit) {
+private fun TestTriggerSection(
+    onDryRun: () -> Unit,
+    onLive: () -> Unit,
+) {
     var counting by remember { mutableStateOf<TriggerMode?>(null) }
     var remaining by remember { mutableStateOf(TEST_COUNTDOWN_SECONDS) }
 
@@ -652,15 +690,17 @@ private fun TestTriggerSection(onDryRun: () -> Unit, onLive: () -> Unit) {
             fontWeight = FontWeight.Bold,
             fontSize = 10.sp,
             letterSpacing = 2.sp,
-            modifier = Modifier
+            modifier =
+            Modifier
                 .fillMaxWidth()
                 .padding(top = 4.dp),
         )
-        val caption = when (counting) {
-            null -> "Verify the shutdown mechanism. DRY RUN finds the target and stops; KILL actually powers off."
-            TriggerMode.DryRun -> "Dry run firing in..."
-            TriggerMode.Live -> "KILL firing in. Cancel to abort."
-        }
+        val caption =
+            when (counting) {
+                null -> "Verify the shutdown mechanism. DRY RUN finds the target and stops; KILL actually powers off."
+                TriggerMode.DryRun -> "Dry run firing in..."
+                TriggerMode.Live -> "KILL firing in. Cancel to abort."
+            }
         Text(
             text = caption,
             color = if (counting == TriggerMode.Live) Color(0xFFFF6644) else Color(0xFF998877),
@@ -721,14 +761,16 @@ private fun TimeEditDialog(
     onDismiss: () -> Unit,
     onConfirm: (Int) -> Unit,
 ) {
-    val pickerState = rememberTimePickerState(
-        initialHour = initialMinutes / 60,
-        initialMinute = initialMinutes % 60,
-        is24Hour = true,
-    )
+    val pickerState =
+        rememberTimePickerState(
+            initialHour = initialMinutes / 60,
+            initialMinute = initialMinutes % 60,
+            is24Hour = true,
+        )
     Dialog(onDismissRequest = onDismiss) {
         Column(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .clip(RoundedCornerShape(8.dp))
                 .background(Color(0xFF14110D))
                 .padding(20.dp),
@@ -770,8 +812,10 @@ private fun formatDuration(seconds: Int): String {
 private fun MainScreenPreview() {
     BuzzKillTheme {
         MainScreen(
-            state = UiState(
-                persisted = PersistedState(
+            state =
+            UiState(
+                persisted =
+                PersistedState(
                     windowStartMinutes = SettingsRepository.DEFAULT_WINDOW_START,
                     windowEndMinutes = SettingsRepository.DEFAULT_WINDOW_END,
                     inactivityTimeoutSeconds = 30 * 60,
@@ -784,7 +828,8 @@ private fun MainScreenPreview() {
                     oemKillerAcked = true,
                     firstShutdownConfirmed = false,
                 ),
-                permissions = PermissionStatus(
+                permissions =
+                PermissionStatus(
                     accessibilityEnabled = true,
                     batteryOptimizationExempt = true,
                     notificationsGranted = true,

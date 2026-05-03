@@ -13,10 +13,15 @@ import kotlinx.coroutines.launch
  * [PackageReplacedReceiver] which handles the equivalent re-install case.
  */
 class BootReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED &&
             intent.action != Intent.ACTION_LOCKED_BOOT_COMPLETED
-        ) return
+        ) {
+            return
+        }
         Log.i(TAG, "boot received, re-arming")
         // goAsync to keep the receiver alive while we re-arm.
         val pending = goAsync()
