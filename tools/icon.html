@@ -208,6 +208,8 @@
     </fieldset>
 
     <button id="export">Export SVG</button>
+    <button id="export-png">Export PNG (current size)</button>
+    <button id="export-png-1024">Export PNG 1024×1024</button>
     <p class="help">
       The exported SVG embeds <a href="https://fonts.google.com/specimen/Tilt+Neon" target="_blank" style="color: var(--text)">Tilt Neon</a>
       via a Google Fonts <code>@import</code> so renderers with internet display it correctly.
@@ -302,17 +304,49 @@
     ids.forEach((k) => $(k).addEventListener("input", render));
     render();
 
-    $("export").addEventListener("click", () => {
-      const s = state();
-      const svg = buildSvg(s, { embedFont: true });
-      const blob = new Blob([svg], { type: "image/svg+xml" });
+    function downloadBlob(blob, filename) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `bk-icon-${s.size}.svg`;
+      a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
+    }
+
+    $("export").addEventListener("click", () => {
+      const s = state();
+      const svg = buildSvg(s, { embedFont: true });
+      downloadBlob(new Blob([svg], { type: "image/svg+xml" }), `bk-icon-${s.size}.svg`);
     });
+
+    async function exportPng(targetSize) {
+      const s = state();
+      const svg = buildSvg(s, { embedFont: true });
+      // Wait for Tilt Neon to be ready in the document before rasterising; the
+      // <img> we draw to canvas inherits font availability from the page.
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+
+      const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = url;
+      });
+
+      const canvas = document.createElement("canvas");
+      canvas.width = targetSize;
+      canvas.height = targetSize;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, targetSize, targetSize);
+      canvas.toBlob((blob) => {
+        downloadBlob(blob, `bk-icon-${targetSize}.png`);
+      }, "image/png");
+    }
+
+    $("export-png").addEventListener("click", () => exportPng(+state().size));
+    $("export-png-1024").addEventListener("click", () => exportPng(1024));
   </script>
 </body>
 </html>
