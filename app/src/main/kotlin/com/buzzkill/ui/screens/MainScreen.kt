@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -329,9 +330,14 @@ private fun SchedulePanel(
         Spacer(Modifier.height(14.dp))
 
         // 2) Two equal-width columns: inputs on the left, toggle + status on the right.
+        // IntrinsicSize.Min on the row makes it as tall as its tallest child (the
+        // input column). The right column then fillMaxHeight + Arrangement.Center
+        // vertically centres the toggle + status against the left side.
         Row(
             verticalAlignment = Alignment.Top,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(androidx.compose.foundation.layout.IntrinsicSize.Min),
         ) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -355,14 +361,17 @@ private fun SchedulePanel(
             }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
             ) {
                 LedSwitch(
                     isOn = persisted.enabled,
                     onToggle = { onToggleEnabled(!persisted.enabled) },
                     label = "armed",
                 )
+                Spacer(Modifier.height(10.dp))
                 ScheduleStatusText(state = state)
             }
         }
