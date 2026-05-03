@@ -149,18 +149,88 @@ The OEM scheduled-power-on isn't enabled. Open `Settings → Additional settings
 
 ### Inactivity alarm fires while I'm using the phone
 
-The screen-on broadcast didn't reach the service in time, or you locked then unlocked rapidly. The service cancels the alarm on `ACTION_SCREEN_ON` and `ACTION_USER_PRESENT`. If this happens reliably, capture logcat and check the timing.
+The screen-off broadcast started the timer and only `ACTION_USER_PRESENT` (a real keyguard dismiss) cancels it. If you're on the lockscreen for an extended time it can still fire — add a quick unlock + relock to interrupt.
 
-### Logcat tags
+## Viewing logs
 
-- `BuzzKill.svc` — accessibility service (window state, screen state, alarm decisions)
-- `BuzzKill.alarm` — alarm manager scheduling
-- `BuzzKill.poweroff` — power-off sequence (node walking, click, confirmation)
-- `BuzzKill.boot`, `BuzzKill.replaced`, `BuzzKill.fgs` — receivers and FGS
+Plug the phone in over USB, accept the RSA prompt, then use `adb logcat`. Useful invocations:
+
+### Live tail of just BuzzKill
+
+Most useful while testing. Streams everything the app logs in real time:
 
 ```bash
-adb logcat -s 'BuzzKill.*'
+adb logcat -c                          # clear the buffer first
+adb logcat 'BuzzKill.*:V' '*:S'        # follow only BuzzKill tags
 ```
+
+`'*:S'` silences everything else; without it you'd be drowned in system noise.
+
+### One-shot dump after the fact
+
+If you reproduced an issue and want to inspect what already happened (don't need a live tail):
+
+```bash
+adb logcat -d 'BuzzKill.*:V' '*:S' | tail -100
+```
+
+`-d` exits immediately after dumping the current buffer instead of following.
+
+### Crash-only buffer
+
+Android keeps fatal crashes in a separate ring. If the app died unexpectedly:
+
+```bash
+adb logcat -d -b crash | tail -120
+```
+
+This is where stack traces from `FATAL EXCEPTION` land. Useful when the app starts and immediately closes.
+
+### Specific subsystem
+
+Each module has its own tag:
+
+| Tag | What it covers |
+|---|---|
+| `BuzzKill.svc` | Accessibility service: window state, user-present, broadcast routing |
+| `BuzzKill.alarm` | AlarmManager scheduling and re-arms |
+| `BuzzKill.poweroff` | Power-off sequence: node walking, slide gesture, retries |
+| `BuzzKill.inactivity` | Manifest receiver that wakes the process when the alarm fires |
+| `BuzzKill.fgs` | Foreground service start/stop |
+| `BuzzKill.boot`, `BuzzKill.replaced` | BOOT_COMPLETED / package-replaced re-arm |
+
+Filter to just one:
+
+```bash
+adb logcat 'BuzzKill.poweroff:V' '*:S'
+```
+
+### Targeting a specific device
+
+If multiple devices/emulators are connected:
+
+```bash
+adb devices                                # list serials
+adb -s <serial> logcat 'BuzzKill.*:V' '*:S'
+```
+
+### What "good" looks like for an inactivity-fired shutdown
+
+```
+AlarmManager: sending alarm ... action com.buzzkill.action.INACTIVITY_FIRED
+BuzzKill.inactivity: inactivity broadcast received
+BuzzKill.inactivity: running shutdown (emulator=false)
+BuzzKill.poweroff: running power-off sequence (dryRun=false)
+BuzzKill.poweroff: slide-down dialog detected via marker: 'two fingers to power it off'
+BuzzKill.poweroff: slide attempt 1/3
+BuzzKill.poweroff: slide-down completed
+BuzzKill.poweroff: dialog dismissed after attempt 1 — assuming triggered
+BuzzKill.svc: external shutdown trigger result (dryRun=false): Triggered(...)
+```
+
+If you see `inactivity broadcast received` missing entirely after the AlarmManager line, OxygenOS killed the app and didn't wake it for the broadcast — check OEM auto-launch / battery-killer settings.
+
+If you see `slide attempt 3/3` followed by `slide-down dispatched 3× but dialog still visible`, the gesture isn't engaging the OnePlus slider — likely the lockscreen is intercepting it.
 
 ## Uninstall
 
