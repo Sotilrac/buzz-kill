@@ -10,6 +10,10 @@
     <!-- API 33+: normal permission, auto-granted at install. Required by setAlarmClock()
          on API 34+. We're an alarm-clock-style app so this matches Google's policy. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <!-- Briefly woken when the inactivity alarm fires while the screen is off, so
+         the power dialog opens against an already-stable display rather than during
+         a wake-from-off transition. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:allowBackup="false"

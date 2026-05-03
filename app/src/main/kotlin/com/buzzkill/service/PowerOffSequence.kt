@@ -2,10 +2,12 @@ package com.buzzkill.service
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
+import android.content.Context
 import android.graphics.Path
 import android.graphics.Rect
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.util.Log
 import android.view.accessibility.AccessibilityNodeInfo
 import com.buzzkill.oem.OemDetector
@@ -52,6 +54,41 @@ class PowerOffSequence(
 
     suspend fun run(dryRun: Boolean): Result {
         Log.i(TAG, "running power-off sequence (dryRun=$dryRun)")
+
+        // Wake the screen first so the power dialog opens against a stable
+        // already-on display rather than mid wake-from-off transition. Held
+        // for [SCREEN_HOLD_MS] which covers our entire dialog + gesture window.
+        val pm = service.getSystemService(Context.POWER_SERVICE) as PowerManager
+
+        // honoured; modern alternatives (Activity flags) require a window which
+        // an AccessibilityService doesn't have.
+        @Suppress("DEPRECATION") // SCREEN_BRIGHT_WAKE_LOCK is deprecated but still
+        val wakeLock = pm.newWakeLock(
+            PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+            "BuzzKill::poweroff",
+        )
+        var wakeLockHeld = false
+        try {
+            try {
+                wakeLock.acquire(SCREEN_HOLD_MS)
+                wakeLockHeld = true
+                Log.i(TAG, "wakelock acquired")
+            } catch (t: Throwable) {
+                Log.w(TAG, "wakelock acquire failed; continuing without it", t)
+            }
+            // Let the screen actually come on before we invoke the dialog.
+            if (wakeLockHeld) delay(SCREEN_SETTLE_MS)
+
+            return runInner(dryRun)
+        } finally {
+            if (wakeLockHeld) {
+                runCatching { wakeLock.release() }
+                Log.i(TAG, "wakelock released")
+            }
+        }
+    }
+
+    private suspend fun runInner(dryRun: Boolean): Result {
         val opened = service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_POWER_DIALOG)
         if (!opened) return Result.DialogDidNotOpen
 
@@ -325,6 +362,10 @@ class PowerOffSequence(
         private const val SLIDE_HOLD_MS = 350L
         private const val POST_GESTURE_VERIFY_MS = 800L
         private const val SLIDE_RETRIES = 3
+
+        // Wakelock held long enough to cover dialog + 3 retries.
+        private const val SCREEN_HOLD_MS = 15_000L
+        private const val SCREEN_SETTLE_MS = 400L
     }
 
     private fun slideDownDialogStillVisible(service: AccessibilityService): Boolean {
