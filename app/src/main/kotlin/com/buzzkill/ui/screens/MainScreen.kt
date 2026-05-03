@@ -109,6 +109,8 @@ fun MainScreen(
             onTestTriggerLive = onTestTriggerLive,
         )
         Spacer(Modifier.height(8.dp))
+        Footer()
+        Spacer(Modifier.height(4.dp))
     }
 
     editing?.let { which ->
@@ -220,7 +222,6 @@ private fun Header() {
 
 @Composable
 private fun NeonTitle() {
-    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     Row(verticalAlignment = Alignment.Bottom) {
         NeonText(
             text = "BUZZ",
@@ -236,14 +237,45 @@ private fun NeonTitle() {
         )
         Spacer(Modifier.width(8.dp))
         Text(
-            text = "by carlos asmat",
+            text = "v${com.buzzkill.BuildConfig.VERSION_NAME}",
             color = Color(0xFF665544),
             fontFamily = FontFamily.Monospace,
             fontSize = 9.sp,
             letterSpacing = 1.sp,
-            modifier = Modifier
-                .padding(bottom = 6.dp)
-                .clickable { uriHandler.openUri("https://asmat.ca") },
+            modifier = Modifier.padding(bottom = 6.dp),
+        )
+    }
+}
+
+@Composable
+private fun Footer() {
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = "by carlos asmat",
+            color = Color(0xFF665544),
+            fontFamily = FontFamily.Monospace,
+            fontSize = 10.sp,
+            letterSpacing = 1.sp,
+            modifier = Modifier.clickable { uriHandler.openUri("https://asmat.ca") },
+        )
+        Text(
+            text = "  ·  ",
+            color = Color(0xFF332A22),
+            fontFamily = FontFamily.Monospace,
+            fontSize = 10.sp,
+        )
+        Text(
+            text = "see source",
+            color = Color(0xFF665544),
+            fontFamily = FontFamily.Monospace,
+            fontSize = 10.sp,
+            letterSpacing = 1.sp,
+            modifier = Modifier.clickable { uriHandler.openUri("https://gitlab.com/sotilrac/buzz-kill") },
         )
     }
 }
