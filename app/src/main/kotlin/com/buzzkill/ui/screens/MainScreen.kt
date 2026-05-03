@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
@@ -74,43 +76,48 @@ fun MainScreen(
     var editing by remember { mutableStateOf<TimeEdit?>(null) }
     var pendingEnable by remember { mutableStateOf(false) }
 
-    // Regular Column + verticalScroll so the screen scrolls ONLY when content
-    // actually overflows. LazyColumn was always scrollable (with overscroll bounce)
-    // even when collapsed content fit comfortably.
-    Column(
-        modifier =
-        Modifier
+    // BoxWithConstraints gives us the viewport height; we then enforce
+    // heightIn(min = viewportHeight) on the inner Column so a weighted Spacer
+    // can pin the Footer to the bottom when content is short. When content
+    // overflows, verticalScroll takes over and the Spacer collapses to 0.
+    BoxWithConstraints(
+        modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0A0806))
-            .padding(WindowInsets.systemBars.asPaddingValues())
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .padding(WindowInsets.systemBars.asPaddingValues()),
     ) {
-        Header()
-        SchedulePanel(
-            state = state,
-            onToggleEnabled = { newValue ->
-                if (newValue && !state.persisted.firstShutdownConfirmed) {
-                    pendingEnable = true
-                } else {
-                    onToggleEnabled(newValue)
-                }
-            },
-            onEditStart = { editing = TimeEdit.Start },
-            onEditEnd = { editing = TimeEdit.End },
-            onSetInactivitySeconds = onSetInactivitySeconds,
-        )
-        SetupPanel(
-            state = state,
-            onFixPermission = onFixPermission,
-            onTogglePermissionAck = onTogglePermissionAck,
-            onTestTriggerDryRun = onTestTriggerDryRun,
-            onTestTriggerLive = onTestTriggerLive,
-        )
-        Spacer(Modifier.height(8.dp))
-        Footer()
-        Spacer(Modifier.height(4.dp))
+        val viewportHeight = maxHeight
+        Column(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+                .heightIn(min = viewportHeight - 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Header()
+            SchedulePanel(
+                state = state,
+                onToggleEnabled = { newValue ->
+                    if (newValue && !state.persisted.firstShutdownConfirmed) {
+                        pendingEnable = true
+                    } else {
+                        onToggleEnabled(newValue)
+                    }
+                },
+                onEditStart = { editing = TimeEdit.Start },
+                onEditEnd = { editing = TimeEdit.End },
+                onSetInactivitySeconds = onSetInactivitySeconds,
+            )
+            SetupPanel(
+                state = state,
+                onFixPermission = onFixPermission,
+                onTogglePermissionAck = onTogglePermissionAck,
+                onTestTriggerDryRun = onTestTriggerDryRun,
+                onTestTriggerLive = onTestTriggerLive,
+            )
+            Spacer(Modifier.weight(1f))
+            Footer()
+        }
     }
 
     editing?.let { which ->
