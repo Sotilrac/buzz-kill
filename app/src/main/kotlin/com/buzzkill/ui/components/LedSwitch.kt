@@ -121,7 +121,7 @@ private fun SwitchBody(isOn: Boolean, onToggle: () -> Unit) {
                             Modifier
                                 .height(1.dp)
                                 .width(16.dp)
-                                .background(Color(0xFFCCBBAA)),
+                                .background(Color(0xFFA89685)),
                         )
                     }
                 }

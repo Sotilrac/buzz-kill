@@ -384,7 +384,7 @@ private fun ScheduleStatusText(state: UiState) {
     // useful next number.
     val text = when (val s = state.status) {
         is StatusLine.NeedsSetup -> "set up first"
-        is StatusLine.Disabled -> ""
+        is StatusLine.Disabled -> "Don't let them win"
         is StatusLine.Armed -> "opens in\n${formatDuration(s.nextOpenMinutes * 60)}"
         is StatusLine.Active -> "closes in\n${formatDuration(s.minutesRemainingInWindow * 60)}"
         is StatusLine.Counting -> "killing in\n${formatDuration(s.secondsRemaining)}"

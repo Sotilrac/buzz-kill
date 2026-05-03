@@ -41,7 +41,10 @@ class ShutdownAccessibilityService : AccessibilityService() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 Intent.ACTION_SCREEN_OFF -> onScreenOff()
-                Intent.ACTION_SCREEN_ON, Intent.ACTION_USER_PRESENT -> onScreenOn()
+                // Only cancel on a real unlock (USER_PRESENT). ACTION_SCREEN_ON
+                // fires for incidental wakes — notifications, AOD, lift-to-wake,
+                // fingerprint sensor — and used to abort our timer for free.
+                Intent.ACTION_USER_PRESENT -> onUserPresent()
                 Broadcasts.WINDOW_OPEN -> onWindowOpen()
                 Broadcasts.WINDOW_CLOSE -> onWindowClose()
                 // INACTIVITY_FIRED is owned by InactivityReceiver (manifest-registered)
@@ -60,7 +63,6 @@ class ShutdownAccessibilityService : AccessibilityService() {
 
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_OFF)
-            addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_USER_PRESENT)
             addAction(Broadcasts.WINDOW_OPEN)
             addAction(Broadcasts.WINDOW_CLOSE)
@@ -113,8 +115,8 @@ class ShutdownAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun onScreenOn() {
-        Log.i(TAG, "screen on")
+    private fun onUserPresent() {
+        Log.i(TAG, "user present (unlocked)")
         alarms.cancelInactivity()
         scope.launch { repo.setCountdownStartedAt(null) }
     }
