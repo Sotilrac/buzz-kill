@@ -13,8 +13,8 @@ android {
         minSdk = 26
         targetSdk = 36
         // Override from CI with -PversionName=… / -PversionCode=…
-        versionCode = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 1
-        versionName = (project.findProperty("versionName") as? String) ?: "0.1.0-dev"
+        versionCode = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 10000
+        versionName = (project.findProperty("versionName") as? String) ?: "1.0.0-dev"
     }
 
     buildTypes {
@@ -61,3 +61,45 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.truth)
 }
+
+// Regenerates launcher icon resources from tools/icon-1024.png. Wired into
+// preBuild so a fresh source PNG triggers a regen automatically; skipped when
+// inputs+outputs are unchanged. Requires `python3` + Pillow on the host.
+val generateIcons by tasks.registering(Exec::class) {
+    description = "Regenerate launcher icon mipmaps from tools/icon-1024.png"
+    group = "buzzkill"
+    workingDir = rootDir
+    commandLine("python3", "$rootDir/tools/generate-icons.py")
+
+    inputs.file("$rootDir/tools/icon-1024.png").withPropertyName("source")
+    inputs.file("$rootDir/tools/generate-icons.py").withPropertyName("script")
+    outputs.dirs(
+        "$projectDir/src/main/res/mipmap-mdpi",
+        "$projectDir/src/main/res/mipmap-hdpi",
+        "$projectDir/src/main/res/mipmap-xhdpi",
+        "$projectDir/src/main/res/mipmap-xxhdpi",
+        "$projectDir/src/main/res/mipmap-xxxhdpi",
+    )
+    outputs.file("$projectDir/src/main/res/drawable/ic_launcher_foreground.webp")
+    outputs.cacheIf { true }
+
+    // Don't fail the build if Python/Pillow is missing (e.g. on CI runners
+    // without it) — the generated webps are checked into git and will be used
+    // as-is. A real source change requires a host with Pillow installed.
+    isIgnoreExitValue = true
+    doFirst {
+        val python = ProcessBuilder("python3", "-c", "import PIL")
+            .redirectErrorStream(true)
+            .start()
+        if (python.waitFor() != 0) {
+            logger.warn(
+                "[generateIcons] Pillow not available; using committed icon webps. " +
+                    "Run `pip install --user Pillow` to enable regeneration.",
+            )
+            // Skip the actual exec by replacing args with a no-op.
+            commandLine("python3", "-c", "pass")
+        }
+    }
+}
+
+tasks.named("preBuild") { dependsOn(generateIcons) }
