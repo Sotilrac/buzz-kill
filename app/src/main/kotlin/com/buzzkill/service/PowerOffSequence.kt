@@ -52,17 +52,32 @@ class PowerOffSequence(private val service: AccessibilityService) {
         val hit = findMatch(service.rootInActiveWindow, primaryTargets, visited)
         if (hit == null) {
             Log.w(TAG, "no text match. visited (${visited.size}): $visited")
-            // OEM-specific gesture fallback (e.g. OnePlus two-finger slide UI).
+            // OEM-specific gesture fallback (e.g. OnePlus single-finger slide UI).
             val fallback = PowerDialogStrings.gestureFallbackFor(OemDetector.current)
             if (fallback == PowerDialogStrings.GestureFallback.SlideDown) {
                 val marker = PowerDialogStrings.slideDownMarkers
                     .firstOrNull { m -> visited.any { v -> v.contains(m) } }
                 if (marker != null) {
-                    Log.i(TAG, "two-finger-swipe-down dialog detected via marker: '$marker'")
+                    Log.i(TAG, "slide-down dialog detected via marker: '$marker'")
                     if (dryRun) return Result.DryRun(marker, Mode.SlideDown)
-                    val ok = dispatchSlideDownGesture()
-                    return if (ok) Result.Triggered(marker, Mode.SlideDown)
-                    else Result.NotFound(listOf("two-finger swipe-down dispatch failed (marker '$marker')"))
+                    // Retry up to 3 times: when invoked from a background trigger
+                    // (alarm-driven), the dialog can render over the lockscreen and
+                    // not consume the first gesture.
+                    repeat(SLIDE_RETRIES) { attempt ->
+                        Log.i(TAG, "slide attempt ${attempt + 1}/$SLIDE_RETRIES")
+                        val ok = dispatchSlideDownGesture()
+                        if (!ok) return Result.NotFound(listOf("slide-down dispatch failed (marker '$marker')"))
+                        delay(POST_GESTURE_VERIFY_MS)
+                        // If the dialog text is gone, the slider engaged.
+                        val stillVisible = findMatch(service.rootInActiveWindow, primaryTargets, mutableListOf()) != null ||
+                            slideDownDialogStillVisible(service)
+                        if (!stillVisible) {
+                            Log.i(TAG, "dialog dismissed after attempt ${attempt + 1} — assuming triggered")
+                            return Result.Triggered(marker, Mode.SlideDown)
+                        }
+                        Log.w(TAG, "dialog still visible after attempt ${attempt + 1}; retrying")
+                    }
+                    return Result.NotFound(listOf("slide-down dispatched ${SLIDE_RETRIES}× but dialog still visible (marker '$marker')"))
                 }
             }
             Log.w(TAG, "no fallback triggered. looked for: $primaryTargets")
@@ -242,9 +257,18 @@ class PowerOffSequence(private val service: AccessibilityService) {
 
     companion object {
         private const val TAG = "BuzzKill.poweroff"
-        private const val POST_DIALOG_DELAY_MS = 800L
+        private const val POST_DIALOG_DELAY_MS = 1200L
         private const val POST_TAP_DELAY_MS = 400L
         private const val SWIPE_DURATION_MS = 400L
-        private const val SLIDE_DOWN_DURATION_MS = 1100L
+        private const val SLIDE_DOWN_DURATION_MS = 1300L
+        private const val POST_GESTURE_VERIFY_MS = 700L
+        private const val SLIDE_RETRIES = 3
+    }
+
+    private fun slideDownDialogStillVisible(service: AccessibilityService): Boolean {
+        val root = service.rootInActiveWindow ?: return false
+        val visited = mutableListOf<String>()
+        walk(root, PowerDialogStrings.slideDownMarkers.toSet(), visited)
+        return PowerDialogStrings.slideDownMarkers.any { m -> visited.any { v -> v.contains(m) } }
     }
 }
