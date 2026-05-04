@@ -9,6 +9,7 @@ import androidx.compose.ui.text.font.FontFamily
 import ca.asmat.buzzkill.R
 
 val TiltNeonFamily = FontFamily(Font(R.font.tilt_neon))
+val RubikGlitchFamily = FontFamily(Font(R.font.rubik_glitch))
 
 private val BuzzKillColorScheme =
     darkColorScheme(

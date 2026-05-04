@@ -58,6 +58,7 @@ import ca.asmat.buzzkill.ui.components.LedSwitch
 import ca.asmat.buzzkill.ui.components.Panel
 import ca.asmat.buzzkill.ui.components.SevenSegmentDisplay
 import ca.asmat.buzzkill.ui.theme.BuzzKillTheme
+import ca.asmat.buzzkill.ui.theme.RubikGlitchFamily
 import ca.asmat.buzzkill.ui.theme.TiltNeonFamily
 
 enum class PermissionItem { Accessibility, Battery, Notifications, ScheduledPowerOn, OemKiller }
@@ -232,11 +233,13 @@ private fun Header() {
 @Composable
 private fun NeonTitle() {
     Row(verticalAlignment = Alignment.Bottom) {
-        NeonText(
+        // BUZZ uses Rubik Glitch — flat yellow, no glow stack.
+        Text(
             text = "BUZZ",
-            glowColor = Color(0xFFFFAA22),
-            coreColor = Color(0xFFFFF6E0),
-            flicker = false,
+            color = Color(0xFFFFAA22),
+            fontFamily = RubikGlitchFamily,
+            fontSize = 44.sp,
+            letterSpacing = 2.sp,
         )
         NeonText(
             text = "KILL",
