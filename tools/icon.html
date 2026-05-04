@@ -3,9 +3,6 @@
 <head>
   <meta charset="utf-8" />
   <title>BuzzKill icon editor</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Tilt+Neon&display=swap" rel="stylesheet" />
   <style>
     :root {
       --bg-page: #0a0806;
@@ -22,17 +19,18 @@
       color: var(--text);
       font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
       display: grid;
-      grid-template-columns: 1fr 360px;
+      grid-template-columns: 1fr 380px;
       gap: 24px;
       padding: 24px;
     }
-    @media (max-width: 900px) { body { grid-template-columns: 1fr; } }
+    @media (max-width: 980px) { body { grid-template-columns: 1fr; } }
     h1 {
-      font-family: "Tilt Neon", system-ui, sans-serif;
+      font-family: system-ui, sans-serif;
       letter-spacing: 4px;
-      font-size: 28px;
-      margin: 0 0 8px;
+      font-size: 22px;
+      margin: 0;
       color: #ffaa22;
+      text-transform: uppercase;
     }
     .preview {
       background: var(--bg-card);
@@ -50,24 +48,26 @@
       aspect-ratio: 1 / 1;
       background: repeating-conic-gradient(#1a1612 0 25%, #14110d 0 50%) 50% / 24px 24px;
       border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      position: relative;
+      overflow: hidden;
     }
     svg.icon { width: 100%; height: 100%; display: block; }
+    svg.overlay { position: absolute; inset: 0; pointer-events: none; }
     .controls {
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 20px;
+      padding: 18px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
+      max-height: calc(100vh - 48px);
+      overflow-y: auto;
     }
     fieldset {
       border: 1px solid var(--border);
       border-radius: 6px;
-      padding: 12px;
+      padding: 10px;
       margin: 0;
     }
     legend {
@@ -82,43 +82,48 @@
       grid-template-columns: 110px 1fr 56px;
       align-items: center;
       gap: 8px;
-      font-size: 12px;
-      margin: 6px 0;
+      font-size: 11px;
+      margin: 4px 0;
     }
     label.row .name { color: var(--label); }
     label.row input[type="range"] { width: 100%; }
-    label.row input[type="color"] { width: 100%; height: 28px; padding: 0; border: 1px solid var(--border); background: transparent; }
-    label.row .val { text-align: right; color: var(--text); }
+    label.row input[type="color"] { width: 100%; height: 26px; padding: 0; border: 1px solid var(--border); background: transparent; }
+    label.row .val { text-align: right; color: var(--text); font-size: 10px; }
+    label.toggle {
+      display: flex; gap: 8px; align-items: center;
+      font-size: 11px; color: var(--label);
+      cursor: pointer;
+    }
+    .button-row { display: flex; flex-direction: column; gap: 6px; }
     button {
       appearance: none;
       background: linear-gradient(180deg, #1a4a2a, #050e08);
       color: #ccffcc;
       border: 1px solid #050402;
-      padding: 12px 18px;
+      padding: 10px 14px;
       border-radius: 4px;
       font-family: inherit;
-      font-size: 13px;
+      font-size: 11px;
       font-weight: bold;
       letter-spacing: 1.5px;
       text-transform: uppercase;
       cursor: pointer;
     }
+    button.alt { background: linear-gradient(180deg, #3a3026, #1a1612); color: var(--text); }
     button:hover { filter: brightness(1.15); }
-    .help { color: var(--label); font-size: 11px; line-height: 1.5; }
-    code { background: #050402; padding: 1px 4px; border-radius: 2px; }
+    .help { color: var(--label); font-size: 10px; line-height: 1.5; margin: 0; }
   </style>
 </head>
 <body>
   <main class="preview">
-    <h1>B K  i c o n</h1>
+    <h1>BuzzKill icon</h1>
     <div class="stage">
-      <svg class="icon" id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-        <!-- defs are written by JS so the filter ids match current params -->
-      </svg>
+      <svg class="icon" id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"></svg>
+      <svg class="overlay" id="overlay" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"></svg>
     </div>
     <p class="help">
-      Stage shows transparent background (chequerboard). Tweak the controls on the right; hit
-      <code>Export SVG</code> to download a standalone file.
+      The chequerboard shows the launcher's transparent backdrop. Toggle mask overlays
+      to confirm the symbol stays inside the safe area (66/108 ≈ 61% of the canvas).
     </p>
   </main>
 
@@ -129,57 +134,69 @@
         <input type="range" id="size" min="64" max="1024" step="8" value="512" />
         <span class="val" id="size-val"></span>
       </label>
-      <label class="row"><span class="name">background</span>
-        <input type="color" id="bg" value="#0a0806" />
-        <span class="val" id="bg-val"></span>
-      </label>
-      <label class="row"><span class="name">bg alpha</span>
+      <label class="row"><span class="name">background α</span>
         <input type="range" id="bg-alpha" min="0" max="1" step="0.05" value="0" />
         <span class="val" id="bg-alpha-val"></span>
       </label>
-    </fieldset>
-
-    <fieldset>
-      <legend>typography</legend>
-      <label class="row"><span class="name">font size %</span>
-        <input type="range" id="font" min="40" max="100" step="1" value="76" />
-        <span class="val" id="font-val"></span>
-      </label>
-      <label class="row"><span class="name">letter gap</span>
-        <input type="range" id="gap" min="-30" max="60" step="1" value="0" />
-        <span class="val" id="gap-val"></span>
-      </label>
-      <label class="row"><span class="name">offset x</span>
-        <input type="range" id="offx" min="-100" max="100" step="1" value="0" />
-        <span class="val" id="offx-val"></span>
-      </label>
-      <label class="row"><span class="name">offset y</span>
-        <input type="range" id="offy" min="-100" max="100" step="1" value="0" />
-        <span class="val" id="offy-val"></span>
+      <label class="row"><span class="name">page bg</span>
+        <input type="color" id="page-bg" value="#0a0806" />
+        <span class="val" id="page-bg-val"></span>
       </label>
     </fieldset>
 
     <fieldset>
-      <legend>neon B</legend>
-      <label class="row"><span class="name">glow color</span>
-        <input type="color" id="b-glow" value="#ffaa22" />
-        <span class="val" id="b-glow-val"></span>
+      <legend>octagon</legend>
+      <label class="row"><span class="name">size %</span>
+        <input type="range" id="oct-size" min="40" max="100" step="1" value="84" />
+        <span class="val" id="oct-size-val"></span>
       </label>
-      <label class="row"><span class="name">core color</span>
-        <input type="color" id="b-core" value="#fff6e0" />
-        <span class="val" id="b-core-val"></span>
+      <label class="row"><span class="name">rotation</span>
+        <input type="range" id="oct-rot" min="0" max="45" step="1" value="22" />
+        <span class="val" id="oct-rot-val"></span>
+      </label>
+      <label class="row"><span class="name">fill colour</span>
+        <input type="color" id="oct-fill" value="#0a0806" />
+        <span class="val" id="oct-fill-val"></span>
+      </label>
+      <label class="row"><span class="name">border colour</span>
+        <input type="color" id="oct-border" value="#ff3322" />
+        <span class="val" id="oct-border-val"></span>
+      </label>
+      <label class="row"><span class="name">border width</span>
+        <input type="range" id="oct-border-w" min="0" max="20" step="0.5" value="3" />
+        <span class="val" id="oct-border-w-val"></span>
+      </label>
+      <label class="row"><span class="name">border α inner</span>
+        <input type="range" id="oct-alpha-inner" min="0" max="1" step="0.05" value="0.95" />
+        <span class="val" id="oct-alpha-inner-val"></span>
+      </label>
+      <label class="row"><span class="name">border α outer</span>
+        <input type="range" id="oct-alpha-outer" min="0" max="1" step="0.05" value="0.15" />
+        <span class="val" id="oct-alpha-outer-val"></span>
+      </label>
+      <label class="row"><span class="name">inner glow %</span>
+        <input type="range" id="inner-glow" min="0" max="100" step="1" value="55" />
+        <span class="val" id="inner-glow-val"></span>
       </label>
     </fieldset>
 
     <fieldset>
-      <legend>neon K</legend>
-      <label class="row"><span class="name">glow color</span>
-        <input type="color" id="k-glow" value="#ff3322" />
-        <span class="val" id="k-glow-val"></span>
+      <legend>power symbol</legend>
+      <label class="row"><span class="name">size %</span>
+        <input type="range" id="pwr-size" min="20" max="80" step="1" value="46" />
+        <span class="val" id="pwr-size-val"></span>
       </label>
-      <label class="row"><span class="name">core color</span>
-        <input type="color" id="k-core" value="#ffe4dc" />
-        <span class="val" id="k-core-val"></span>
+      <label class="row"><span class="name">stroke width</span>
+        <input type="range" id="pwr-stroke" min="2" max="40" step="0.5" value="14" />
+        <span class="val" id="pwr-stroke-val"></span>
+      </label>
+      <label class="row"><span class="name">glow colour</span>
+        <input type="color" id="pwr-glow" value="#ff3322" />
+        <span class="val" id="pwr-glow-val"></span>
+      </label>
+      <label class="row"><span class="name">core colour</span>
+        <input type="color" id="pwr-core" value="#ffe4dc" />
+        <span class="val" id="pwr-core-val"></span>
       </label>
     </fieldset>
 
@@ -207,36 +224,73 @@
       </label>
     </fieldset>
 
-    <button id="export">Export SVG</button>
-    <button id="export-png">Export PNG (current size)</button>
-    <button id="export-png-1024">Export PNG 1024×1024</button>
+    <fieldset>
+      <legend>mask overlays (preview only)</legend>
+      <label class="toggle"><input type="checkbox" id="mask-circle" checked /> circle (Pixel mask, safe area)</label>
+      <label class="toggle"><input type="checkbox" id="mask-squircle" /> squircle (iOS / OnePlus mask)</label>
+      <label class="toggle"><input type="checkbox" id="mask-rsquare" /> rounded square (Samsung)</label>
+    </fieldset>
+
+    <div class="button-row">
+      <button id="export-svg">Export SVG (colour)</button>
+      <button id="export-png">Export PNG (current size)</button>
+      <button id="export-png-1024">Export PNG 1024×1024</button>
+      <button id="export-svg-mono" class="alt">Export SVG (monochrome)</button>
+      <button id="export-png-mono-1024" class="alt">Export PNG monochrome 1024</button>
+    </div>
+
     <p class="help">
-      The exported SVG embeds <a href="https://fonts.google.com/specimen/Tilt+Neon" target="_blank" style="color: var(--text)">Tilt Neon</a>
-      via a Google Fonts <code>@import</code> so renderers with internet display it correctly.
-      For an offline-portable file, open the SVG in Inkscape and use
-      <code>Path → Object to Path</code> to outline the glyphs (loses text editability,
-      gains font-independence).
+      Monochrome export = octagon with the power-off symbol punched out (Android 13+
+      themed icons). White-on-transparent so the launcher can recolour it.
     </p>
   </aside>
 
   <script>
     const $ = (id) => document.getElementById(id);
     const ids = [
-      "size", "bg", "bg-alpha",
-      "font", "gap", "offx", "offy",
-      "b-glow", "b-core", "k-glow", "k-core",
+      "size", "bg-alpha", "page-bg",
+      "oct-size", "oct-rot", "oct-fill", "oct-border", "oct-border-w",
+      "oct-alpha-inner", "oct-alpha-outer", "inner-glow",
+      "pwr-size", "pwr-stroke", "pwr-glow", "pwr-core",
       "blur1", "blur2", "blur3", "blur4", "alpha",
     ];
+    const masks = ["mask-circle", "mask-squircle", "mask-rsquare"];
     const state = () => Object.fromEntries(ids.map((k) => [k, $(k).value]));
 
-    function buildSvg(s, { embedFont = false } = {}) {
-      const size = +s.size;
-      const fontSize = size * (+s.font / 100);
-      const cx = size / 2 + +s.offx;
-      const cy = size / 2 + +s.offy + fontSize * 0.35; // visual baseline tuning
-      const gap = +s.gap;
+    // Regular octagon vertices around (cx, cy), radius r, with optional rotation in deg.
+    function octagonPoints(cx, cy, r, rotDeg) {
+      const pts = [];
+      const start = (rotDeg * Math.PI) / 180;
+      for (let i = 0; i < 8; i++) {
+        const a = start + (i * 2 * Math.PI) / 8;
+        pts.push(`${(cx + r * Math.cos(a)).toFixed(2)},${(cy + r * Math.sin(a)).toFixed(2)}`);
+      }
+      return pts.join(" ");
+    }
+
+    // Power-off symbol: a circular arc (open at the top) + a vertical bar.
+    // Drawn as two stroke paths so the user can scale stroke width independently.
+    function powerOffPaths(cx, cy, r) {
+      // Arc: 270-degree arc opening at the top. Start angle 240°, sweep 240°.
+      // (i.e., goes from upper-left, clockwise through bottom, to upper-right)
+      const startA = (240 * Math.PI) / 180;
+      const endA = (-60 * Math.PI) / 180;
+      const sx = cx + r * Math.cos(startA);
+      const sy = cy + r * Math.sin(startA);
+      const ex = cx + r * Math.cos(endA);
+      const ey = cy + r * Math.sin(endA);
+      // largeArc=1 for >180°, sweep=1 for clockwise.
+      const arc = `M ${sx.toFixed(2)} ${sy.toFixed(2)} A ${r} ${r} 0 1 1 ${ex.toFixed(2)} ${ey.toFixed(2)}`;
+      // Vertical bar from top of circle slightly down to about -25% up.
+      const barTop = cy - r * 1.15;
+      const barBot = cy - r * 0.25;
+      const bar = `M ${cx} ${barTop.toFixed(2)} L ${cx} ${barBot.toFixed(2)}`;
+      return { arc, bar };
+    }
+
+    function neonFilter(id, color, s) {
       const a = +s.alpha;
-      const filterDef = (id, color) => `
+      return `
         <filter id="${id}" x="-50%" y="-50%" width="200%" height="200%">
           <feFlood flood-color="${color}" result="c"/>
           <feComposite in="c" in2="SourceAlpha" operator="in" result="cl"/>
@@ -249,59 +303,146 @@
           <feComponentTransfer in="b2" result="b2d"><feFuncA type="linear" slope="${a * 0.85}"/></feComponentTransfer>
           <feComponentTransfer in="b1" result="b1d"><feFuncA type="linear" slope="${a}"/></feComponentTransfer>
           <feMerge>
-            <feMergeNode in="b4d"/>
-            <feMergeNode in="b3d"/>
-            <feMergeNode in="b2d"/>
-            <feMergeNode in="b1d"/>
+            <feMergeNode in="b4d"/><feMergeNode in="b3d"/>
+            <feMergeNode in="b2d"/><feMergeNode in="b1d"/>
             <feMergeNode in="SourceGraphic"/>
           </feMerge>
         </filter>`;
+    }
 
-      const fontStyle = embedFont
-        ? `<style>@import url('https://fonts.googleapis.com/css2?family=Tilt+Neon&amp;display=swap');</style>`
-        : "";
+    function buildSvg(s, { mode = "color" } = {}) {
+      const size = +s.size;
+      const cx = size / 2, cy = size / 2;
+      const octR = (size / 2) * (+s["oct-size"] / 100);
+      const pwrR = (size / 2) * (+s["pwr-size"] / 100) / 2; // power-off "size %" = bounding box; r = half
+      const innerGlowR = octR * (+s["inner-glow"] / 100);
+      const octBorderW = +s["oct-border-w"];
+      const octRot = +s["oct-rot"];
+      const points = octagonPoints(cx, cy, octR, octRot);
+      const power = powerOffPaths(cx, cy, pwrR);
 
-      const bgRect = `<rect width="${size}" height="${size}" fill="${s.bg}" fill-opacity="${s["bg-alpha"]}"/>`;
+      if (mode === "monochrome") {
+        // Single white silhouette: octagon shape minus the power-off cutouts.
+        // Use a mask: octagon white, power-off in black to subtract.
+        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+          <defs>
+            <mask id="mono-cut">
+              <polygon points="${points}" fill="white"/>
+              <g fill="none" stroke="black" stroke-width="${s["pwr-stroke"]}" stroke-linecap="round">
+                <path d="${power.arc}"/>
+                <path d="${power.bar}"/>
+              </g>
+            </mask>
+          </defs>
+          <rect width="${size}" height="${size}" fill="black" fill-opacity="0"/>
+          <rect width="${size}" height="${size}" fill="white" mask="url(#mono-cut)"/>
+        </svg>`;
+      }
 
-      // Two glyphs, side by side, anchored at their own centres.
-      // Approx half-glyph width = fontSize * 0.32 (Tilt Neon is condensed-ish).
-      const halfGlyph = fontSize * 0.32;
-      const bX = cx - halfGlyph - gap / 2;
-      const kX = cx + halfGlyph + gap / 2;
-
-      const text = (x, glyph, glow, core, filter) => `
-        <text x="${x}" y="${cy}"
-              text-anchor="middle"
-              font-family="'Tilt Neon', system-ui, sans-serif"
-              font-size="${fontSize}"
-              fill="${core}"
-              filter="url(#${filter})">${glyph}</text>`;
-
+      // Colour mode.
+      const innerGradId = "inner-glow-grad";
+      const borderGradId = "border-grad";
       return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
-        ${fontStyle}
         <defs>
-          ${filterDef("neon-b", s["b-glow"])}
-          ${filterDef("neon-k", s["k-glow"])}
+          <radialGradient id="${innerGradId}" cx="${cx}" cy="${cy}" r="${innerGlowR}" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="${s["pwr-glow"]}" stop-opacity="0.55"/>
+            <stop offset="60%" stop-color="${s["pwr-glow"]}" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="${s["pwr-glow"]}" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="${borderGradId}" cx="${cx}" cy="${cy}" r="${octR * 1.1}" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="${s["oct-border"]}" stop-opacity="${s["oct-alpha-inner"]}"/>
+            <stop offset="80%" stop-color="${s["oct-border"]}" stop-opacity="${(+s["oct-alpha-inner"] + +s["oct-alpha-outer"]) / 2}"/>
+            <stop offset="100%" stop-color="${s["oct-border"]}" stop-opacity="${s["oct-alpha-outer"]}"/>
+          </radialGradient>
+          ${neonFilter("neon-pwr", s["pwr-glow"], s)}
         </defs>
-        ${bgRect}
-        ${text(bX, "B", s["b-glow"], s["b-core"], "neon-b")}
-        ${text(kX, "K", s["k-glow"], s["k-core"], "neon-k")}
+        <rect width="${size}" height="${size}" fill="${s["page-bg"]}" fill-opacity="${s["bg-alpha"]}"/>
+        <!-- Octagon body -->
+        <polygon points="${points}"
+                 fill="${s["oct-fill"]}"
+                 stroke="url(#${borderGradId})"
+                 stroke-width="${octBorderW}"
+                 stroke-linejoin="miter"/>
+        <!-- Inner radial glow inside the octagon, clipped by it. -->
+        <g clip-path="url(#oct-clip)">
+          <circle cx="${cx}" cy="${cy}" r="${innerGlowR}" fill="url(#${innerGradId})"/>
+        </g>
+        <defs>
+          <clipPath id="oct-clip">
+            <polygon points="${points}"/>
+          </clipPath>
+        </defs>
+        <!-- Power-off symbol -->
+        <g fill="none"
+           stroke="${s["pwr-core"]}"
+           stroke-width="${s["pwr-stroke"]}"
+           stroke-linecap="round"
+           filter="url(#neon-pwr)">
+          <path d="${power.arc}"/>
+          <path d="${power.bar}"/>
+        </g>
+      </svg>`;
+    }
+
+    function buildOverlay(s) {
+      const size = +s.size;
+      const cx = size / 2, cy = size / 2;
+      // Adaptive icon safe-area: 66dp circle inside a 108dp viewport ⇒ 66/108 ≈ 0.611.
+      const safeR = size * 66 / 108 / 2;
+      // Full canvas (108dp viewport) edge — useful as 100% reference.
+      const fullR = size / 2;
+
+      let layers = "";
+      if ($("mask-circle").checked) {
+        layers += `
+          <circle cx="${cx}" cy="${cy}" r="${safeR}"
+                  fill="none" stroke="#22ff66" stroke-width="2"
+                  stroke-dasharray="6 4" opacity="0.7"/>
+          <text x="${cx}" y="${cy - safeR - 6}" text-anchor="middle"
+                font-family="monospace" font-size="11" fill="#22ff66" opacity="0.7">safe area (circle)</text>`;
+      }
+      if ($("mask-squircle").checked) {
+        // iOS-style squircle approximation: rounded path with bezier "shoulders".
+        const r = fullR * 0.94;
+        const k = r * 0.2; // shoulder
+        const path = `M ${cx},${cy - r}
+          C ${cx + r - k},${cy - r} ${cx + r},${cy - r + k} ${cx + r},${cy}
+          C ${cx + r},${cy + r - k} ${cx + r - k},${cy + r} ${cx},${cy + r}
+          C ${cx - r + k},${cy + r} ${cx - r},${cy + r - k} ${cx - r},${cy}
+          C ${cx - r},${cy - r + k} ${cx - r + k},${cy - r} ${cx},${cy - r} Z`;
+        layers += `
+          <path d="${path}" fill="none" stroke="#ffaa22" stroke-width="2"
+                stroke-dasharray="6 4" opacity="0.7"/>
+          <text x="${cx}" y="${cy - r - 4}" text-anchor="middle"
+                font-family="monospace" font-size="11" fill="#ffaa22" opacity="0.7">squircle</text>`;
+      }
+      if ($("mask-rsquare").checked) {
+        const r = fullR * 0.94;
+        const rx = r * 0.45;
+        layers += `
+          <rect x="${cx - r}" y="${cy - r}" width="${2 * r}" height="${2 * r}" rx="${rx}" ry="${rx}"
+                fill="none" stroke="#22ccff" stroke-width="2"
+                stroke-dasharray="6 4" opacity="0.7"/>
+          <text x="${cx}" y="${cy + r + 14}" text-anchor="middle"
+                font-family="monospace" font-size="11" fill="#22ccff" opacity="0.7">rounded square</text>`;
+      }
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
+        ${layers}
       </svg>`;
     }
 
     function render() {
       const s = state();
-      // Update displayed values
-      ids.forEach((k) => {
-        const el = $(`${k}-val`);
-        if (el) el.textContent = s[k];
-      });
-      // Re-mount the live SVG by replacing #icon's contents
-      const live = buildSvg(s);
-      $("icon").outerHTML = live.replace("<svg ", "<svg id=\"icon\" class=\"icon\" ");
+      ids.forEach((k) => { const el = $(`${k}-val`); if (el) el.textContent = s[k]; });
+      const svg = buildSvg(s, { mode: "color" });
+      $("icon").outerHTML = svg.replace("<svg ", "<svg id=\"icon\" class=\"icon\" ");
+      const overlay = buildOverlay(s);
+      $("overlay").outerHTML = overlay.replace("<svg ", "<svg id=\"overlay\" class=\"overlay\" ");
+      // Stage backdrop reflects "page bg" if the user is previewing a non-transparent canvas.
+      document.documentElement.style.setProperty("--page-bg", s["page-bg"]);
     }
 
-    ids.forEach((k) => $(k).addEventListener("input", render));
+    [...ids, ...masks].forEach((k) => $(k).addEventListener("input", render));
     render();
 
     function downloadBlob(blob, filename) {
@@ -313,40 +454,32 @@
       URL.revokeObjectURL(url);
     }
 
-    $("export").addEventListener("click", () => {
+    async function exportSvg(mode) {
       const s = state();
-      const svg = buildSvg(s, { embedFont: true });
-      downloadBlob(new Blob([svg], { type: "image/svg+xml" }), `bk-icon-${s.size}.svg`);
-    });
+      const svg = buildSvg(s, { mode });
+      const tag = mode === "monochrome" ? "mono" : "color";
+      downloadBlob(new Blob([svg], { type: "image/svg+xml" }), `bk-icon-${tag}-${s.size}.svg`);
+    }
 
-    async function exportPng(targetSize) {
+    async function exportPng(targetSize, mode) {
       const s = state();
-      const svg = buildSvg(s, { embedFont: true });
-      // Wait for Tilt Neon to be ready in the document before rasterising; the
-      // <img> we draw to canvas inherits font availability from the page.
-      if (document.fonts && document.fonts.ready) await document.fonts.ready;
-
+      const svg = buildSvg(s, { mode });
       const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
       const img = new Image();
       img.crossOrigin = "anonymous";
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = url;
-      });
-
+      await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = url; });
       const canvas = document.createElement("canvas");
-      canvas.width = targetSize;
-      canvas.height = targetSize;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, targetSize, targetSize);
-      canvas.toBlob((blob) => {
-        downloadBlob(blob, `bk-icon-${targetSize}.png`);
-      }, "image/png");
+      canvas.width = targetSize; canvas.height = targetSize;
+      canvas.getContext("2d").drawImage(img, 0, 0, targetSize, targetSize);
+      const tag = mode === "monochrome" ? "mono" : "color";
+      canvas.toBlob((blob) => downloadBlob(blob, `bk-icon-${tag}-${targetSize}.png`), "image/png");
     }
 
-    $("export-png").addEventListener("click", () => exportPng(+state().size));
-    $("export-png-1024").addEventListener("click", () => exportPng(1024));
+    $("export-svg").addEventListener("click", () => exportSvg("color"));
+    $("export-png").addEventListener("click", () => exportPng(+state().size, "color"));
+    $("export-png-1024").addEventListener("click", () => exportPng(1024, "color"));
+    $("export-svg-mono").addEventListener("click", () => exportSvg("monochrome"));
+    $("export-png-mono-1024").addEventListener("click", () => exportPng(1024, "monochrome"));
   </script>
 </body>
 </html>
