@@ -35,30 +35,32 @@ variables:
   GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true"
 
+# Pipelines fire only on git tag pushes. Branch pushes get no CI — local
+# `./gradlew :app:ktlintCheck :app:detekt :app:testDebugUnitTest` is the
+# pre-tag check. This makes the tag the single CI trigger and avoids paying
+# minutes for two pipelines (one per ref) when bumping + tagging the same SHA.
+workflow:
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: always
+    - when: never
+
 stages:
   - verify
+  - build
   - release
 
-# -- verify: lint + test + build, all in one container --------------------
+# -- verify: lint + test, runs first on every tag pipeline ---------------
 
 verify:
   stage: verify
-  # Allow newer pipelines (e.g. an immediate tag push) to cancel this one.
-  interruptible: true
-  rules:
-    # Tag pipelines run the release flow; skip the verify job there.
-    - if: $CI_COMMIT_TAG
-      when: never
-    - when: on_success
   script:
-    # `--continue` keeps going past the first failure so we get all reports.
     - >
       ./gradlew --continue
       :app:ktlintCheck
       :app:detekt
       :app:lintDebug
       :app:testDebugUnitTest
-      :app:assembleDebug
   artifacts:
     when: always
     paths:
@@ -66,32 +68,15 @@ verify:
       - app/build/reports/detekt/
       - app/build/reports/lint-results-debug.html
       - app/build/reports/tests/
-      - app/build/outputs/apk/debug/*.apk
     reports:
       junit: app/build/test-results/testDebugUnitTest/TEST-*.xml
     expire_in: 1 week
 
-# -- release: tag-only flow -----------------------------------------------
+# -- build: tagged APK ---------------------------------------------------
 
 build-release:
-  stage: release
-  rules:
-    - if: $CI_COMMIT_TAG
+  stage: build
   script:
-    # Cancel any verify pipeline still running on the same commit — usually a
-    # leftover from `git push main && git push tag` where both refs trigger
-    # pipelines for the same SHA. The release pipeline takes over from here.
-    - |
-      set +e
-      PIDS=$(curl --silent --header "JOB-TOKEN: $CI_JOB_TOKEN" \
-        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines?sha=${CI_COMMIT_SHA}&status=running&per_page=20" \
-        | grep -oE '"id":[0-9]+' | sed 's/"id"://' | grep -v "^${CI_PIPELINE_ID}$")
-      for pid in $PIDS; do
-        echo "Cancelling sibling pipeline $pid (same SHA)"
-        curl --silent --request POST --header "JOB-TOKEN: $CI_JOB_TOKEN" \
-          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines/${pid}/cancel" > /dev/null
-      done
-      set -e
     - VERSION_NAME="${CI_COMMIT_TAG#v}"
     - |
       if [[ "$VERSION_NAME" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
@@ -117,8 +102,6 @@ build-release:
 publish-release:
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
-  rules:
-    - if: $CI_COMMIT_TAG
   needs:
     - job: build-release
       artifacts: true

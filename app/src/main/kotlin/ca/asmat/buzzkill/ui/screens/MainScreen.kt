@@ -553,7 +553,7 @@ private fun ScheduleNote() {
     Text(
         text =
         "While inside the window, if your screen stays off for the inactivity period, the phone is powered off." +
-            "\nTurn it back on with the power button, or set a scheduled power-on in your phone's settings.",
+            "\n\nTurn it back on with the power button, or set a scheduled power-on in your phone's settings.",
         color = Color(0xFF998877),
         fontFamily = FontFamily.Monospace,
         fontSize = 11.sp,

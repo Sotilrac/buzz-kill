@@ -16,8 +16,8 @@ android {
         minSdk = 26
         targetSdk = 36
         // Override from CI with -PversionName=… / -PversionCode=…
-        versionCode = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 10004
-        versionName = (project.findProperty("versionName") as? String) ?: "1.0.4-dev"
+        versionCode = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 10005
+        versionName = (project.findProperty("versionName") as? String) ?: "1.0.5-dev"
     }
 
     buildTypes {
