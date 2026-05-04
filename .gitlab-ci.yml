@@ -43,6 +43,8 @@ stages:
 
 verify:
   stage: verify
+  # Allow newer pipelines (e.g. an immediate tag push) to cancel this one.
+  interruptible: true
   rules:
     # Tag pipelines run the release flow; skip the verify job there.
     - if: $CI_COMMIT_TAG
@@ -76,6 +78,20 @@ build-release:
   rules:
     - if: $CI_COMMIT_TAG
   script:
+    # Cancel any verify pipeline still running on the same commit — usually a
+    # leftover from `git push main && git push tag` where both refs trigger
+    # pipelines for the same SHA. The release pipeline takes over from here.
+    - |
+      set +e
+      PIDS=$(curl --silent --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines?sha=${CI_COMMIT_SHA}&status=running&per_page=20" \
+        | grep -oE '"id":[0-9]+' | sed 's/"id"://' | grep -v "^${CI_PIPELINE_ID}$")
+      for pid in $PIDS; do
+        echo "Cancelling sibling pipeline $pid (same SHA)"
+        curl --silent --request POST --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines/${pid}/cancel" > /dev/null
+      done
+      set -e
     - VERSION_NAME="${CI_COMMIT_TAG#v}"
     - |
       if [[ "$VERSION_NAME" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then

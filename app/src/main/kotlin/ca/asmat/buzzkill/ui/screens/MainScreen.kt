@@ -221,7 +221,7 @@ private fun Header() {
         NeonTitle()
         Spacer(Modifier.height(4.dp))
         Text(
-            text = "Reclaim the night. Shut it down.",
+            text = "Shut it down. Reclaim the night.",
             color = Color(0xFFCCBBAA),
             fontFamily = FontFamily.Monospace,
             fontSize = 12.sp,
