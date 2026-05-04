@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Android 12+ SplashScreen API overlay. The base theme in values/themes.xml
+         covers earlier Android versions via android:windowBackground. -->
     <style name="Theme.BuzzKill" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@android:color/black</item>
         <item name="android:navigationBarColor">@android:color/black</item>
         <item name="android:windowLightStatusBar">false</item>
-        <!-- Pre-Android-12 splash background. Same dark panel colour the app
-             draws on top of, so the brief flash between launch and first
-             Compose frame is on-brand instead of the OS-default white. The
-             Android-12+ SplashScreen attrs live in values-v31/themes.xml. -->
         <item name="android:windowBackground">@color/ic_launcher_background</item>
+        <item name="android:windowSplashScreenBackground">@color/ic_launcher_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
     </style>
 </resources>

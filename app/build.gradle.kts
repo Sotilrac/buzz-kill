@@ -1,6 +1,9 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+// AGP 9 ships built-in Kotlin support, so kotlin-android is no longer applied
+// explicitly — adding it would clash with the AGP-managed `kotlin` extension.
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
@@ -13,8 +16,8 @@ android {
         minSdk = 26
         targetSdk = 36
         // Override from CI with -PversionName=… / -PversionCode=…
-        versionCode = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 10001
-        versionName = (project.findProperty("versionName") as? String) ?: "1.0.1-dev"
+        versionCode = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 10002
+        versionName = (project.findProperty("versionName") as? String) ?: "1.0.2-dev"
     }
 
     buildTypes {
@@ -28,9 +31,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
     buildFeatures {
         compose = true
         buildConfig = true
@@ -40,6 +40,12 @@ android {
 
     testOptions {
         unitTests.isReturnDefaultValues = true
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
