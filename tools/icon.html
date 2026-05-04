@@ -190,6 +190,14 @@
         <input type="range" id="pwr-stroke" min="2" max="40" step="0.5" value="14" />
         <span class="val" id="pwr-stroke-val"></span>
       </label>
+      <label class="row"><span class="name">offset x %</span>
+        <input type="range" id="pwr-x" min="-30" max="30" step="0.5" value="0" />
+        <span class="val" id="pwr-x-val"></span>
+      </label>
+      <label class="row"><span class="name">offset y %</span>
+        <input type="range" id="pwr-y" min="-30" max="30" step="0.5" value="0" />
+        <span class="val" id="pwr-y-val"></span>
+      </label>
       <label class="row"><span class="name">glow colour</span>
         <input type="color" id="pwr-glow" value="#ff3322" />
         <span class="val" id="pwr-glow-val"></span>
@@ -251,7 +259,7 @@
       "size", "bg-alpha", "page-bg",
       "oct-size", "oct-rot", "oct-fill", "oct-border", "oct-border-w",
       "oct-alpha-inner", "oct-alpha-outer", "inner-glow",
-      "pwr-size", "pwr-stroke", "pwr-glow", "pwr-core",
+      "pwr-size", "pwr-stroke", "pwr-x", "pwr-y", "pwr-glow", "pwr-core",
       "blur1", "blur2", "blur3", "blur4", "alpha",
     ];
     const masks = ["mask-circle", "mask-squircle", "mask-rsquare"];
@@ -280,20 +288,20 @@
       return `translate(${tx} ${ty}) scale(${scale})${rotate}`;
     }
 
-    // Power-off symbol: a circular arc (open at the top) + a vertical bar.
-    // Drawn as two stroke paths so the user can scale stroke width independently.
+    // Power-off symbol: a 300° arc opening at the TOP plus a vertical bar
+    // dropping into the gap. SVG y-axis is inverted vs. math, so what looks
+    // like "above the centre" has y < cy. Going from upper-left to upper-right
+    // via the bottom of the circle is `sweep=0` (decreasing angle) with
+    // `large-arc=1`.
     function powerOffPaths(cx, cy, r) {
-      // Arc: 270-degree arc opening at the top. Start angle 240°, sweep 240°.
-      // (i.e., goes from upper-left, clockwise through bottom, to upper-right)
-      const startA = (240 * Math.PI) / 180;
-      const endA = (-60 * Math.PI) / 180;
+      const startA = (240 * Math.PI) / 180; // upper-left
+      const endA = (-60 * Math.PI) / 180;   // upper-right (= 300°)
       const sx = cx + r * Math.cos(startA);
       const sy = cy + r * Math.sin(startA);
       const ex = cx + r * Math.cos(endA);
       const ey = cy + r * Math.sin(endA);
-      // largeArc=1 for >180°, sweep=1 for clockwise.
-      const arc = `M ${sx.toFixed(2)} ${sy.toFixed(2)} A ${r} ${r} 0 1 1 ${ex.toFixed(2)} ${ey.toFixed(2)}`;
-      // Vertical bar from top of circle slightly down to about -25% up.
+      const arc = `M ${sx.toFixed(2)} ${sy.toFixed(2)} A ${r} ${r} 0 1 0 ${ex.toFixed(2)} ${ey.toFixed(2)}`;
+      // Vertical bar coming from above the gap, ending just inside it.
       const barTop = cy - r * 1.15;
       const barBot = cy - r * 0.25;
       const bar = `M ${cx} ${barTop.toFixed(2)} L ${cx} ${barBot.toFixed(2)}`;
@@ -331,7 +339,9 @@
       const octBorderW = +s["oct-border-w"];
       const octRot = +s["oct-rot"];
       const octT = octagonTransform(cx, cy, octR, octRot);
-      const power = powerOffPaths(cx, cy, pwrR);
+      const pwrCx = cx + (size / 2) * (+s["pwr-x"] / 100);
+      const pwrCy = cy + (size / 2) * (+s["pwr-y"] / 100);
+      const power = powerOffPaths(pwrCx, pwrCy, pwrR);
 
       if (mode === "monochrome") {
         // Single white silhouette: octagon shape minus the power-off cutouts.
