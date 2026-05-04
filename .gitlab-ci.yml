@@ -13,9 +13,12 @@
 # pull cost once per pipeline instead of five times.
 
 default:
-  # Pin the image tag so GitLab's runner cluster can cache the layers; using
-  # `:latest` invalidates the cache on every push.
-  image: mingc/android-build-box:1.34.0
+  # mingc/android-build-box only publishes versioned tags up to 1.29.0 (April
+  # 2025), too old for compileSdk 36. The maintainer pushes new builds to
+  # `:latest` instead. The single-job pipeline (vs. five parallel jobs) is what
+  # actually saves runtime — image pulls are per-job on SaaS shared runners
+  # regardless of tag pinning.
+  image: mingc/android-build-box:latest
   cache:
     key:
       files:
