@@ -151,7 +151,7 @@
         <span class="val" id="oct-size-val"></span>
       </label>
       <label class="row"><span class="name">rotation</span>
-        <input type="range" id="oct-rot" min="0" max="45" step="1" value="22" />
+        <input type="range" id="oct-rot" min="0" max="45" step="1" value="0" />
         <span class="val" id="oct-rot-val"></span>
       </label>
       <label class="row"><span class="name">fill colour</span>
@@ -257,15 +257,27 @@
     const masks = ["mask-circle", "mask-squircle", "mask-rsquare"];
     const state = () => Object.fromEntries(ids.map((k) => [k, $(k).value]));
 
-    // Regular octagon vertices around (cx, cy), radius r, with optional rotation in deg.
-    function octagonPoints(cx, cy, r, rotDeg) {
-      const pts = [];
-      const start = (rotDeg * Math.PI) / 180;
-      for (let i = 0; i < 8; i++) {
-        const a = start + (i * 2 * Math.PI) / 8;
-        pts.push(`${(cx + r * Math.cos(a)).toFixed(2)},${(cy + r * Math.sin(a)).toFixed(2)}`);
-      }
-      return pts.join(" ");
+    // FontAwesome 7.2.0 free `fa-solid fa-octagon`. ViewBox 0 0 640 640;
+    // shape's bounding box is roughly (64.5, 64.1) → (576.3, 575.9), centred
+    // near (320, 320) with rounded corners (cubic beziers at each vertex).
+    const FA_OCTAGON_PATH =
+      "M252.6 64.1C235.6 64.1 219.3 70.8 207.3 82.8L83.2 207C71.2 219 64.5 235.2 64.5 252.2L64.5 " +
+      "387.8C64.5 404.8 71.2 421.1 83.2 433.1L207.4 557.2C219.4 569.2 235.7 575.9 252.7 575.9L388.3 " +
+      "575.9C405.3 575.9 421.6 569.2 433.6 557.2L557.6 433C569.6 421 576.3 404.7 576.3 387.7L576.3 " +
+      "252.1C576.3 235.1 569.6 218.8 557.6 206.8L433.5 82.8C421.5 70.8 405.2 64.1 388.2 64.1L252.6 64.1z";
+    const FA_OCTAGON_VB = 640;
+    const FA_OCTAGON_CENTER = 320;
+
+    // Compose a transform that places the FA octagon centered at (cx, cy) with
+    // its bounding box scaled to fit a 2*r diameter, optionally rotated.
+    function octagonTransform(cx, cy, r, rotDeg) {
+      const scale = (2 * r) / FA_OCTAGON_VB;
+      const tx = cx - FA_OCTAGON_CENTER * scale;
+      const ty = cy - FA_OCTAGON_CENTER * scale;
+      const rotate = rotDeg
+        ? ` rotate(${rotDeg} ${cx} ${cy})`
+        : "";
+      return `translate(${tx} ${ty}) scale(${scale})${rotate}`;
     }
 
     // Power-off symbol: a circular arc (open at the top) + a vertical bar.
@@ -318,7 +330,7 @@
       const innerGlowR = octR * (+s["inner-glow"] / 100);
       const octBorderW = +s["oct-border-w"];
       const octRot = +s["oct-rot"];
-      const points = octagonPoints(cx, cy, octR, octRot);
+      const octT = octagonTransform(cx, cy, octR, octRot);
       const power = powerOffPaths(cx, cy, pwrR);
 
       if (mode === "monochrome") {
@@ -327,51 +339,50 @@
         return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
           <defs>
             <mask id="mono-cut">
-              <polygon points="${points}" fill="white"/>
+              <g transform="${octT}" fill="white">
+                <path d="${FA_OCTAGON_PATH}"/>
+              </g>
               <g fill="none" stroke="black" stroke-width="${s["pwr-stroke"]}" stroke-linecap="round">
                 <path d="${power.arc}"/>
                 <path d="${power.bar}"/>
               </g>
             </mask>
           </defs>
-          <rect width="${size}" height="${size}" fill="black" fill-opacity="0"/>
           <rect width="${size}" height="${size}" fill="white" mask="url(#mono-cut)"/>
         </svg>`;
       }
 
       // Colour mode.
-      const innerGradId = "inner-glow-grad";
-      const borderGradId = "border-grad";
       return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
         <defs>
-          <radialGradient id="${innerGradId}" cx="${cx}" cy="${cy}" r="${innerGlowR}" gradientUnits="userSpaceOnUse">
+          <radialGradient id="inner-glow-grad" cx="${cx}" cy="${cy}" r="${innerGlowR}" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stop-color="${s["pwr-glow"]}" stop-opacity="0.55"/>
             <stop offset="60%" stop-color="${s["pwr-glow"]}" stop-opacity="0.18"/>
             <stop offset="100%" stop-color="${s["pwr-glow"]}" stop-opacity="0"/>
           </radialGradient>
-          <radialGradient id="${borderGradId}" cx="${cx}" cy="${cy}" r="${octR * 1.1}" gradientUnits="userSpaceOnUse">
+          <radialGradient id="border-grad" cx="${cx}" cy="${cy}" r="${octR * 1.1}" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stop-color="${s["oct-border"]}" stop-opacity="${s["oct-alpha-inner"]}"/>
             <stop offset="80%" stop-color="${s["oct-border"]}" stop-opacity="${(+s["oct-alpha-inner"] + +s["oct-alpha-outer"]) / 2}"/>
             <stop offset="100%" stop-color="${s["oct-border"]}" stop-opacity="${s["oct-alpha-outer"]}"/>
           </radialGradient>
+          <clipPath id="oct-clip">
+            <g transform="${octT}"><path d="${FA_OCTAGON_PATH}"/></g>
+          </clipPath>
           ${neonFilter("neon-pwr", s["pwr-glow"], s)}
         </defs>
         <rect width="${size}" height="${size}" fill="${s["page-bg"]}" fill-opacity="${s["bg-alpha"]}"/>
         <!-- Octagon body -->
-        <polygon points="${points}"
-                 fill="${s["oct-fill"]}"
-                 stroke="url(#${borderGradId})"
-                 stroke-width="${octBorderW}"
-                 stroke-linejoin="miter"/>
+        <g transform="${octT}"
+           fill="${s["oct-fill"]}"
+           stroke="url(#border-grad)"
+           stroke-width="${octBorderW / ((2 * octR) / FA_OCTAGON_VB)}"
+           stroke-linejoin="miter">
+          <path d="${FA_OCTAGON_PATH}"/>
+        </g>
         <!-- Inner radial glow inside the octagon, clipped by it. -->
         <g clip-path="url(#oct-clip)">
-          <circle cx="${cx}" cy="${cy}" r="${innerGlowR}" fill="url(#${innerGradId})"/>
+          <circle cx="${cx}" cy="${cy}" r="${innerGlowR}" fill="url(#inner-glow-grad)"/>
         </g>
-        <defs>
-          <clipPath id="oct-clip">
-            <polygon points="${points}"/>
-          </clipPath>
-        </defs>
         <!-- Power-off symbol -->
         <g fill="none"
            stroke="${s["pwr-core"]}"
