@@ -1,19 +1,21 @@
 # GitLab CI/CD for BuzzKill.
 #
-# Stages on every push:
-#   lint  → ktlintCheck (style) + Android lint (non-blocking)
-#   test  → unit tests (JUnit report integrated into MR/Pipeline UI)
-#   build → debug APK uploaded as a job artifact
+# Two stages:
+#   verify  — one combined job: ktlint + detekt + Android Lint + unit tests + debug
+#             build. Runs on every push. Uses --continue so all reports come back
+#             even if one tool fails.
 #
-# On a git tag (e.g. `v0.2.0`):
-#   build-release → builds an APK named buzzkill-${TAG}.apk with versionName=${TAG#v}
-#                   and uploads it to GitLab's Generic Package Registry
-#   release       → creates a GitLab Release entry for the tag with the APK linked
+#   release — fires on a git tag (e.g. `v1.0.2`). Builds an APK named
+#             buzzkill-${TAG}.apk with versionName=${TAG#v}, uploads it to the
+#             Generic Package Registry, and creates a GitLab Release entry.
 #
-# Image: mingc/android-build-box ships JDK 21 + Android SDK pre-installed.
+# We collapsed five lint/test/build jobs into one so we pay the docker-image
+# pull cost once per pipeline instead of five times.
 
 default:
-  image: mingc/android-build-box:latest
+  # Pin the image tag so GitLab's runner cluster can cache the layers; using
+  # `:latest` invalidates the cache on every push.
+  image: mingc/android-build-box:1.34.0
   cache:
     key:
       files:
@@ -22,6 +24,7 @@ default:
     paths:
       - .gradle/caches
       - .gradle/wrapper
+      - .gradle/build-cache
   before_script:
     - chmod +x ./gradlew
 
@@ -30,84 +33,47 @@ variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true"
 
 stages:
-  - lint
-  - test
-  - build
+  - verify
   - release
 
-# -- lint stage -------------------------------------------------------------
+# -- verify: lint + test + build, all in one container --------------------
 
-ktlint:
-  stage: lint
-  script:
-    - ./gradlew :app:ktlintCheck
-  artifacts:
-    when: on_failure
-    paths:
-      - app/build/reports/ktlint/
-    expire_in: 1 week
-
-detekt:
-  stage: lint
-  script:
-    - ./gradlew :app:detekt
-  artifacts:
-    when: always
-    paths:
-      - app/build/reports/detekt/
-    expire_in: 1 week
-
-android-lint:
-  stage: lint
-  script:
-    - ./gradlew :app:lintDebug
-  artifacts:
-    when: always
-    paths:
-      - app/build/reports/lint-results-debug.html
-    expire_in: 1 week
-  # Android Lint is informative; don't fail the pipeline on it.
-  allow_failure: true
-
-# -- test stage -------------------------------------------------------------
-
-unit-tests:
-  stage: test
-  script:
-    - ./gradlew :app:testDebugUnitTest
-  artifacts:
-    when: always
-    paths:
-      - app/build/reports/tests/
-    reports:
-      junit: app/build/test-results/testDebugUnitTest/TEST-*.xml
-    expire_in: 1 week
-
-# -- build stage ------------------------------------------------------------
-
-build-debug:
-  stage: build
+verify:
+  stage: verify
   rules:
-    # Skip on tag pipelines; the release flow builds its own tagged artifact.
+    # Tag pipelines run the release flow; skip the verify job there.
     - if: $CI_COMMIT_TAG
       when: never
     - when: on_success
   script:
-    - ./gradlew :app:assembleDebug
+    # `--continue` keeps going past the first failure so we get all reports.
+    - >
+      ./gradlew --continue
+      :app:ktlintCheck
+      :app:detekt
+      :app:lintDebug
+      :app:testDebugUnitTest
+      :app:assembleDebug
   artifacts:
+    when: always
     paths:
+      - app/build/reports/ktlint/
+      - app/build/reports/detekt/
+      - app/build/reports/lint-results-debug.html
+      - app/build/reports/tests/
       - app/build/outputs/apk/debug/*.apk
+    reports:
+      junit: app/build/test-results/testDebugUnitTest/TEST-*.xml
     expire_in: 1 week
 
+# -- release: tag-only flow -----------------------------------------------
+
 build-release:
-  stage: build
+  stage: release
   rules:
     - if: $CI_COMMIT_TAG
   script:
-    # Strip a leading `v` from tags like `v0.2.0`, leaving "0.2.0" as versionName.
     - VERSION_NAME="${CI_COMMIT_TAG#v}"
-    # Pack a 6-digit versionCode from the tag if it's MAJOR.MINOR.PATCH; fall back
-    # to the timestamp otherwise. Both are int and monotonically increasing.
     - |
       if [[ "$VERSION_NAME" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
         VERSION_CODE=$(( ${BASH_REMATCH[1]}*10000 + ${BASH_REMATCH[2]}*100 + ${BASH_REMATCH[3]} ))
@@ -117,8 +83,8 @@ build-release:
     - echo "Building $CI_COMMIT_TAG → versionName=$VERSION_NAME versionCode=$VERSION_CODE"
     - ./gradlew :app:assembleDebug -PversionName="$VERSION_NAME" -PversionCode="$VERSION_CODE"
     - cp app/build/outputs/apk/debug/app-debug.apk "buzzkill-${CI_COMMIT_TAG}.apk"
-    # Upload to the GitLab Generic Package Registry so the release links resolve
-    # to a stable URL (independent of any single CI job's lifetime).
+    # Upload to the GitLab Generic Package Registry so the release link stays
+    # valid independent of any single CI job's lifetime.
     - |
       curl --fail --show-error \
         --header "JOB-TOKEN: $CI_JOB_TOKEN" \
@@ -129,9 +95,7 @@ build-release:
       - "buzzkill-*.apk"
     expire_in: never
 
-# -- release stage ----------------------------------------------------------
-
-release:
+publish-release:
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   rules:
