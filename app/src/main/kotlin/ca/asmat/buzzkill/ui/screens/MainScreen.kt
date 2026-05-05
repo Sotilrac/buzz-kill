@@ -565,13 +565,7 @@ private fun ScheduleNote(inactivitySeconds: Int) {
 
 private fun formatInactivity(seconds: Int): String {
     val m = seconds / 60
-    val s = seconds % 60
-    return when {
-        m == 0 -> "${s}s"
-        s == 0 && m == 1 -> "1 min"
-        s == 0 -> "$m min"
-        else -> "$m min ${s}s"
-    }
+    return if (m == 1) "1 minute" else "$m minutes"
 }
 
 @Composable
