@@ -566,17 +566,27 @@ private fun InactivityStepper(
 
 @Composable
 private fun ScheduleNote(inactivitySeconds: Int) {
-    Text(
-        text =
-        "While inside the kill zone, if your screen stays off for ${formatInactivity(inactivitySeconds)}," +
-            " the phone is powered off." +
-            "\n\nTurn it back on with the power button, or set a scheduled power-on in your phone's settings.",
-        color = Color(0xFF998877),
-        fontFamily = FontFamily.Monospace,
-        fontSize = 11.sp,
-        lineHeight = 14.sp,
+    val noteColor = Color(0xFF998877)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth(),
-    )
+    ) {
+        Text(
+            text = "While inside the kill zone, if your screen stays off for " +
+                "${formatInactivity(inactivitySeconds)}, the phone is powered off.",
+            color = noteColor,
+            fontFamily = FontFamily.Monospace,
+            fontSize = 11.sp,
+            lineHeight = 14.sp,
+        )
+        Text(
+            text = "Turn it back on with the power button, or set a scheduled power-on in your phone's settings.",
+            color = noteColor,
+            fontFamily = FontFamily.Monospace,
+            fontSize = 11.sp,
+            lineHeight = 14.sp,
+        )
+    }
 }
 
 private fun formatInactivity(seconds: Int): String {
