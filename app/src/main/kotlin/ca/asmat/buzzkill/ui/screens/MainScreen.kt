@@ -635,7 +635,7 @@ private fun HackerModePanel(
                     fontWeight = FontWeight.Bold,
                     fontSize = 10.sp,
                     letterSpacing = 2.sp,
-                    modifier = Modifier.padding(start = 1.dp, top = 2.dp),
+                    modifier = Modifier.padding(start = 5.dp, top = 2.dp),
                 )
             }
             Text(
