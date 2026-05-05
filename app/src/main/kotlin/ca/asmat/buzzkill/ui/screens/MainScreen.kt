@@ -130,6 +130,7 @@ fun MainScreen(
             )
             HackerModePanel(
                 dayModes = state.persisted.dayModes,
+                enabled = state.persisted.enabled,
                 onSetDayMode = onSetDayMode,
             )
             if (!needsSetup) setupPanel()
@@ -454,7 +455,7 @@ private fun SchedulePanel(
                 LedSwitch(
                     isOn = persisted.enabled,
                     onToggle = { onToggleEnabled(!persisted.enabled) },
-                    label = "armed",
+                    label = "Arm",
                 )
                 Spacer(Modifier.height(10.dp))
                 ScheduleStatusText(state = state)
@@ -597,40 +598,42 @@ private fun formatInactivity(seconds: Int): String {
 @Composable
 private fun HackerModePanel(
     dayModes: Map<DayOfWeek, DayMode>,
+    enabled: Boolean,
     onSetDayMode: (DayOfWeek, DayMode) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val allDayCount = dayModes.values.count { it == DayMode.AllDay }
-    val offCount = dayModes.values.count { it == DayMode.Off }
-    val trailing = buildString {
-        append(if (allDayCount > 0) "$allDayCount all-day" else "")
-        if (allDayCount > 0 && offCount > 0) append(" · ")
-        append(if (offCount > 0) "$offCount off" else "")
-        if (allDayCount == 0 && offCount == 0) append("default")
-        append("  ${if (expanded) "▾" else "▸"}")
-    }
+    val effectivelyExpanded = expanded && enabled
+    val trailing =
+        if (enabled) {
+            "${hackerSummary(dayModes)}  ${if (effectivelyExpanded) "▾" else "▸"}"
+        } else {
+            "DISARMED"
+        }
+    val labelColor = if (enabled) Color(0xFF665544) else Color(0xFF332A22)
 
     // Custom header so "HACKER" can render in Rubik Glitch while "MODE" stays
     // in the regular panel-label style. Bypasses Panel's built-in label slot.
     Panel(modifier = Modifier.fillMaxWidth()) {
+        val headerModifier = Modifier
+            .fillMaxWidth()
+            .let { if (enabled) it.clickable { expanded = !expanded } else it }
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = !expanded },
+            modifier = headerModifier,
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "HACKER",
-                    color = Color(0xFF665544),
+                    color = labelColor,
                     fontFamily = RubikGlitchFamily,
+                    fontWeight = FontWeight.Light,
                     fontSize = 14.sp,
                     letterSpacing = 1.sp,
                 )
                 Text(
                     text = "MODE",
-                    color = Color(0xFF665544),
+                    color = labelColor,
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
                     fontSize = 10.sp,
@@ -639,8 +642,8 @@ private fun HackerModePanel(
                 )
             }
             Text(
-                text = trailing.uppercase(),
-                color = Color(0xFF665544),
+                text = trailing,
+                color = labelColor,
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
                 fontSize = 10.sp,
@@ -648,25 +651,13 @@ private fun HackerModePanel(
             )
         }
 
-        if (expanded) {
+        if (effectivelyExpanded) {
             Spacer(Modifier.height(12.dp))
-            Text(
-                text = "Per-day kill zone. Tap to cycle: ALL DAY → ZONE → OFF.",
-                color = Color(0xFF998877),
-                fontFamily = FontFamily.Monospace,
-                fontSize = 11.sp,
-                lineHeight = 14.sp,
-            )
-            Spacer(Modifier.height(14.dp))
-
-            // Use ISO order: Mon..Sun left to right.
-            val days = DayOfWeek.entries
-            Row(
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                days.forEach { day ->
-                    DayColumn(
+            DayLegendRow()
+            Spacer(Modifier.height(8.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                DayOfWeek.entries.forEach { day ->
+                    DayRow(
                         day = day,
                         mode = dayModes[day] ?: DayMode.Zone,
                         onChange = { newMode -> onSetDayMode(day, newMode) },
@@ -677,17 +668,63 @@ private fun HackerModePanel(
     }
 }
 
+private val DayLabelWidth = 36.dp
+private val SwitchSlotWidth = 132.dp
+private val DayLedDiameter = 10.dp
+
+// Led canvas reserves diameter * 2.4 for the glow halo, so the row's LED
+// column actually consumes this much layout width — match it in the legend.
+private val DayLedSlotWidth = DayLedDiameter * 2.4f
+
 @Composable
-private fun DayColumn(
+private fun DayLegendRow() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Spacer(Modifier.width(DayLabelWidth))
+        Box(
+            modifier = Modifier.weight(1f),
+            contentAlignment = Alignment.Center,
+        ) {
+            Row(modifier = Modifier.width(SwitchSlotWidth)) {
+                LegendLabel("OFF", Modifier.weight(1f))
+                LegendLabel("ZONE", Modifier.weight(1f))
+                LegendLabel("ALL DAY", Modifier.weight(1f))
+            }
+        }
+        Spacer(Modifier.width(DayLedSlotWidth))
+    }
+}
+
+@Composable
+private fun LegendLabel(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        text = text,
+        color = Color(0xFF665544),
+        fontFamily = FontFamily.Monospace,
+        fontSize = 8.sp,
+        letterSpacing = 1.sp,
+        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun DayRow(
     day: DayOfWeek,
     mode: DayMode,
     onChange: (DayMode) -> Unit,
 ) {
-    // Switch position: 0 = AllDay (top), 1 = Zone (middle), 2 = Off (bottom).
+    // Position 0 (left) = Off, 1 = Zone, 2 = AllDay. Matches legend order.
     val position = when (mode) {
-        DayMode.AllDay -> 0
+        DayMode.Off -> 0
         DayMode.Zone -> 1
-        DayMode.Off -> 2
+        DayMode.AllDay -> 2
     }
     val ledColor = when (mode) {
         DayMode.AllDay -> LedColor.Red
@@ -696,35 +733,88 @@ private fun DayColumn(
     }
     val flicker = mode == DayMode.AllDay
 
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        Text(
+            text = day.name.take(3),
+            color = Color(0xFFCCBBAA),
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold,
+            fontSize = 11.sp,
+            letterSpacing = 1.sp,
+            modifier = Modifier.width(DayLabelWidth),
+        )
+        Box(
+            modifier = Modifier.weight(1f),
+            contentAlignment = Alignment.Center,
+        ) {
+            TristateSwitch(
+                position = position,
+                onPositionChange = { newPos ->
+                    onChange(
+                        when (newPos) {
+                            0 -> DayMode.Off
+                            1 -> DayMode.Zone
+                            else -> DayMode.AllDay
+                        },
+                    )
+                },
+                width = SwitchSlotWidth,
+            )
+        }
         Led(
             isOn = mode != DayMode.Off,
             color = ledColor,
-            diameter = 10.dp,
+            diameter = DayLedDiameter,
             flicker = flicker,
         )
-        TristateSwitch(
-            position = position,
-            onPositionChange = { newPos ->
-                onChange(
-                    when (newPos) {
-                        0 -> DayMode.AllDay
-                        1 -> DayMode.Zone
-                        else -> DayMode.Off
-                    },
-                )
-            },
-        )
-        Text(
-            text = day.name.take(3),
-            color = Color(0xFF998877),
-            fontFamily = FontFamily.Monospace,
-            fontSize = 9.sp,
-            letterSpacing = 1.sp,
-        )
+    }
+}
+
+private val Weekdays = setOf(
+    DayOfWeek.MONDAY,
+    DayOfWeek.TUESDAY,
+    DayOfWeek.WEDNESDAY,
+    DayOfWeek.THURSDAY,
+    DayOfWeek.FRIDAY,
+)
+private val Weekend = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+
+private fun Map<DayOfWeek, DayMode>.allAre(days: Set<DayOfWeek>, m: DayMode): Boolean =
+    days.all { (this[it] ?: DayMode.Zone) == m }
+
+private fun hackerSummary(modes: Map<DayOfWeek, DayMode>): String {
+    val allDay = modes.values.count { it == DayMode.AllDay }
+    val off = modes.values.count { it == DayMode.Off }
+    val zone = modes.values.count { it == DayMode.Zone }
+    return uniformWeekSummary(allDay, off, zone)
+        ?: weekendVsWeekdaySummary(modes)
+        ?: if (allDay > 0 || off > 0) "$off OFF · $allDay ALL-DAY" else "$zone ZONE"
+}
+
+private fun uniformWeekSummary(allDay: Int, off: Int, zone: Int): String? = when {
+    allDay == 7 -> "MAXIMUM KILL"
+    off == 7 -> "GHOST WEEK"
+    zone == 7 -> "STANDARD"
+    else -> null
+}
+
+private fun weekendVsWeekdaySummary(modes: Map<DayOfWeek, DayMode>): String? {
+    val weekendsAllDay = modes.allAre(Weekend, DayMode.AllDay)
+    val weekendsOff = modes.allAre(Weekend, DayMode.Off)
+    val weekendsZone = modes.allAre(Weekend, DayMode.Zone)
+    val weekdaysAllDay = modes.allAre(Weekdays, DayMode.AllDay)
+    val weekdaysOff = modes.allAre(Weekdays, DayMode.Off)
+    val weekdaysZone = modes.allAre(Weekdays, DayMode.Zone)
+    return when {
+        weekendsAllDay && weekdaysZone -> "WEEKEND WIPEOUT"
+        weekendsOff && weekdaysZone -> "WEEKEND PASS"
+        weekdaysAllDay && weekendsZone -> "WORKWEEK BURN"
+        weekdaysOff && weekendsZone -> "WORKWEEK PARDON"
+        else -> null
     }
 }
 
