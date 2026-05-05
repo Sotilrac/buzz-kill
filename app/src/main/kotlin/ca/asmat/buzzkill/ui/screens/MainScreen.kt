@@ -413,12 +413,12 @@ private fun SchedulePanel(
                 modifier = Modifier.weight(1f),
             ) {
                 LabeledTime(
-                    label = "window open",
+                    label = "kill zone from",
                     minutes = persisted.windowStartMinutes,
                     onClick = onEditStart,
                 )
                 LabeledTime(
-                    label = "window close",
+                    label = "kill zone until",
                     minutes = persisted.windowEndMinutes,
                     onClick = onEditEnd,
                 )
@@ -552,7 +552,7 @@ private fun InactivityStepper(
 private fun ScheduleNote() {
     Text(
         text =
-        "While inside the window, if your screen stays off for the inactivity period, the phone is powered off." +
+        "While inside the kill zone, if your screen stays off for the inactivity period, the phone is powered off." +
             "\n\nTurn it back on with the power button, or set a scheduled power-on in your phone's settings.",
         color = Color(0xFF998877),
         fontFamily = FontFamily.Monospace,

@@ -1,12 +1,12 @@
 # BuzzKill
 
-Android app that powers off the phone after an inactivity timeout, only inside a configurable nightly window. Single-screen, Winamp-style hardware-panel UI.
+Android app that powers off the phone after an inactivity timeout, only inside a configurable nightly kill zone. Single-screen, Winamp-style hardware-panel UI.
 
 Primary target: **OnePlus 11 (OxygenOS)**. The code keeps OEM specifics in `app/src/main/kotlin/ca/asmat/buzzkill/oem/` so adding Pixel, Samsung, Xiaomi, etc. is a data-only change.
 
 ## Why this exists
 
-The phone wakes you up. Notifications, the temptation to scroll, the buzz at 2am. BuzzKill kills the phone instead. Inside a window you set (e.g. 23:00–07:00), the app waits for the screen to stay off for N minutes, then triggers the system shutdown via the accessibility service. To come back on in the morning, use the OEM's built-in scheduled power-on (Settings → Additional settings → Scheduled power on/off on OnePlus).
+The phone wakes you up. Notifications, the temptation to scroll, the buzz at 2am. BuzzKill kills the phone instead. Inside a kill zone you set (e.g. 23:00–07:00), the app waits for the screen to stay off for N minutes, then triggers the system shutdown via the accessibility service. To come back on in the morning, use the OEM's built-in scheduled power-on (Settings → Additional settings → Scheduled power on/off on OnePlus).
 
 ## Host dependencies
 
@@ -104,10 +104,10 @@ The app shows an onboarding checklist on first launch. Each row deep-links to th
 
 1. **Accessibility service.** OnePlus puts this at `Settings → Additional settings → Accessibility → Installed services → BuzzKill`. Toggle it on. This is the mechanism the app uses to power off; without it nothing else works.
 2. **Disable battery optimization for BuzzKill.** OxygenOS will otherwise kill the foreground service while the screen is off and the timer never fires.
-3. **Notification permission.** Android 13+ requirement. The persistent notification while the window is active needs this.
+3. **Notification permission.** Android 13+ requirement. The persistent notification while the kill zone is active needs this.
 4. **Scheduled power on/off.** This is the **mitigation for the "phone won't come back on" risk**. Set the phone to auto-power-on around your wake time:
    - `Settings → Additional settings → Scheduled power on/off`
-   - Enable the power-on schedule. Suggested: 5 minutes after your window-close time.
+   - Enable the power-on schedule. Suggested: 5 minutes after the kill zone ends.
    - The app cannot configure this on your behalf and cannot verify it; it's a checkbox you confirm yourself. If you forget it, the phone won't wake up by itself.
 
 A first-shutdown confirmation dialog also appears the very first time the inactivity timer fires, so you can't get caught unaware.
@@ -192,7 +192,7 @@ Each module has its own tag:
 
 | Tag | What it covers |
 |---|---|
-| `BuzzKill.svc` | Accessibility service: window state, user-present, broadcast routing |
+| `BuzzKill.svc` | Accessibility service: kill-zone state, user-present, broadcast routing |
 | `BuzzKill.alarm` | AlarmManager scheduling and re-arms |
 | `BuzzKill.poweroff` | Power-off sequence: node walking, slide gesture, retries |
 | `BuzzKill.inactivity` | Manifest receiver that wakes the process when the alarm fires |
