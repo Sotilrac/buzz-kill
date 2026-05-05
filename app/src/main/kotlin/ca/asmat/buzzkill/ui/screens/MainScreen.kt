@@ -623,7 +623,7 @@ private fun HackerModePanel(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "HACKER",
-                    color = Color(0xFFFFAA22),
+                    color = Color(0xFF665544),
                     fontFamily = RubikGlitchFamily,
                     fontSize = 14.sp,
                     letterSpacing = 1.sp,
