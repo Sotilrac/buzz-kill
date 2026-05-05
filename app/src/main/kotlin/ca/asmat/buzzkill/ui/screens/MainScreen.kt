@@ -629,13 +629,13 @@ private fun HackerModePanel(
                     letterSpacing = 1.sp,
                 )
                 Text(
-                    text = " MODE",
+                    text = "MODE",
                     color = Color(0xFF665544),
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
                     fontSize = 10.sp,
                     letterSpacing = 2.sp,
-                    modifier = Modifier.padding(start = 4.dp, top = 2.dp),
+                    modifier = Modifier.padding(start = 1.dp, top = 2.dp),
                 )
             }
             Text(
