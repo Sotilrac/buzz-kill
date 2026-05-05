@@ -1,0 +1,11 @@
+# Project-specific detekt overrides. Layered on top of detekt's default
+# config via `buildUponDefaultConfig = true` in the root build.gradle.kts.
+naming:
+  FunctionNaming:
+    # Composable functions are PascalCase by Compose convention.
+    ignoreAnnotated:
+      - 'Composable'
+  TopLevelPropertyNaming:
+    # Compose theme objects (TiltNeonFamily, RubikGlitchFamily) are camelCase
+    # but PascalCase reads better for FontFamily-typed top-level vals.
+    constantPattern: '[A-Z][_A-Za-z0-9]*'
