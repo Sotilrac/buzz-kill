@@ -393,7 +393,7 @@ private fun SchedulePanel(
     Panel(label = "schedule", modifier = Modifier.fillMaxWidth()) {
         Spacer(Modifier.height(8.dp))
         // 1) Plain-language explanation at the top of the card.
-        ScheduleNote()
+        ScheduleNote(inactivitySeconds = persisted.inactivityTimeoutSeconds)
         Spacer(Modifier.height(14.dp))
 
         // 2) Two equal-width columns: inputs on the left, toggle + status on the right.
@@ -549,10 +549,11 @@ private fun InactivityStepper(
 }
 
 @Composable
-private fun ScheduleNote() {
+private fun ScheduleNote(inactivitySeconds: Int) {
     Text(
         text =
-        "While inside the kill zone, if your screen stays off for the inactivity period, the phone is powered off." +
+        "While inside the kill zone, if your screen stays off for ${formatInactivity(inactivitySeconds)}," +
+            " the phone is powered off." +
             "\n\nTurn it back on with the power button, or set a scheduled power-on in your phone's settings.",
         color = Color(0xFF998877),
         fontFamily = FontFamily.Monospace,
@@ -560,6 +561,17 @@ private fun ScheduleNote() {
         lineHeight = 14.sp,
         modifier = Modifier.fillMaxWidth(),
     )
+}
+
+private fun formatInactivity(seconds: Int): String {
+    val m = seconds / 60
+    val s = seconds % 60
+    return when {
+        m == 0 -> "${s}s"
+        s == 0 && m == 1 -> "1 min"
+        s == 0 -> "$m min"
+        else -> "$m min ${s}s"
+    }
 }
 
 @Composable
