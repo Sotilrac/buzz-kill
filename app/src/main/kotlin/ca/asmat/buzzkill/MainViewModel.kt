@@ -96,6 +96,11 @@ class MainViewModel(
 
     fun setFirstShutdownConfirmed(b: Boolean) = viewModelScope.launch { repo.setFirstShutdownConfirmed(b) }
 
+    fun setDayMode(
+        day: java.time.DayOfWeek,
+        mode: ca.asmat.buzzkill.data.DayMode,
+    ) = viewModelScope.launch { repo.setDayMode(day, mode) }
+
     private fun defaultPersisted() =
         PersistedState(
             windowStartMinutes = SettingsRepository.DEFAULT_WINDOW_START,
@@ -109,6 +114,7 @@ class MainViewModel(
             scheduledPowerOnAcked = false,
             oemKillerAcked = false,
             firstShutdownConfirmed = false,
+            dayModes = ca.asmat.buzzkill.data.DefaultDayModes,
         )
 
     private fun deriveStatus(

@@ -49,6 +49,7 @@ class MainActivity : ComponentActivity() {
                         onTogglePermissionAck = ::onTogglePermissionAck,
                         onTestTriggerDryRun = { sendTestTrigger(Broadcasts.TEST_TRIGGER_DRY_RUN) },
                         onTestTriggerLive = { sendTestTrigger(Broadcasts.TEST_TRIGGER_LIVE) },
+                        onSetDayMode = { day, mode -> viewModel.setDayMode(day, mode) },
                         onConfirmFirstShutdown = { viewModel.setFirstShutdownConfirmed(true) },
                     )
                 }

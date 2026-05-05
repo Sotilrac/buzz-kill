@@ -3,6 +3,11 @@ package ca.asmat.buzzkill.ui.components
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -12,6 +17,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import ca.asmat.buzzkill.ui.theme.BuzzKillTheme
 import ca.asmat.buzzkill.ui.theme.Led
+import kotlinx.coroutines.delay
 
 enum class LedColor { Green, Red, Amber }
 
@@ -20,8 +26,10 @@ fun Led(
     isOn: Boolean,
     color: LedColor = LedColor.Green,
     diameter: Dp = 14.dp,
+    flicker: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
+    val flickerAlpha by rememberLedFlicker(flicker && isOn)
     val (lit, unlit, glow) =
         when (color) {
             LedColor.Green -> Triple(Led.GreenLit, Led.GreenUnlit, Led.GreenGlow)
@@ -38,7 +46,7 @@ fun Led(
             drawCircle(
                 brush =
                 Brush.radialGradient(
-                    colors = listOf(glow, glow.copy(alpha = 0f)),
+                    colors = listOf(glow.copy(alpha = glow.alpha * flickerAlpha), glow.copy(alpha = 0f)),
                     center = center,
                     radius = ledRadius * 3f,
                 ),
@@ -49,7 +57,7 @@ fun Led(
 
         // Body
         drawCircle(
-            color = if (isOn) lit else unlit,
+            color = if (isOn) lit.copy(alpha = lit.alpha * flickerAlpha) else unlit,
             radius = ledRadius,
             center = center,
         )
@@ -78,6 +86,33 @@ fun Led(
                 .Stroke(width = ledRadius * 0.18f),
         )
     }
+}
+
+/**
+ * Same flicker logic as the KILL neon title: a long mostly-on cycle with one or
+ * two brief dips at random intervals. Re-rolled every cycle so it never loops.
+ */
+@Composable
+private fun rememberLedFlicker(enabled: Boolean): State<Float> {
+    val alpha = remember { mutableFloatStateOf(1f) }
+    LaunchedEffect(enabled) {
+        if (!enabled) {
+            alpha.floatValue = 1f
+            return@LaunchedEffect
+        }
+        val rng = kotlin.random.Random(System.nanoTime())
+        while (true) {
+            delay(rng.nextLong(4500L, 8500L))
+            val flickers = if (rng.nextFloat() < 0.5f) 1 else 2
+            repeat(flickers) { i ->
+                alpha.floatValue = 0.35f + rng.nextFloat() * 0.30f
+                delay(rng.nextLong(30L, 70L))
+                alpha.floatValue = 1f
+                if (i < flickers - 1) delay(rng.nextLong(60L, 140L))
+            }
+        }
+    }
+    return alpha
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF0A0806)

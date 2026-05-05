@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import ca.asmat.buzzkill.BuildConfig
+import ca.asmat.buzzkill.data.DayMode
 import ca.asmat.buzzkill.data.PermissionStatus
 import ca.asmat.buzzkill.data.PersistedState
 import ca.asmat.buzzkill.data.SettingsRepository
@@ -57,9 +58,11 @@ import ca.asmat.buzzkill.ui.components.LedColor
 import ca.asmat.buzzkill.ui.components.LedSwitch
 import ca.asmat.buzzkill.ui.components.Panel
 import ca.asmat.buzzkill.ui.components.SevenSegmentDisplay
+import ca.asmat.buzzkill.ui.components.TristateSwitch
 import ca.asmat.buzzkill.ui.theme.BuzzKillTheme
 import ca.asmat.buzzkill.ui.theme.RubikGlitchFamily
 import ca.asmat.buzzkill.ui.theme.TiltNeonFamily
+import java.time.DayOfWeek
 
 enum class PermissionItem { Accessibility, Battery, Notifications, ScheduledPowerOn, OemKiller }
 
@@ -73,6 +76,7 @@ fun MainScreen(
     onTogglePermissionAck: (PermissionItem) -> Unit,
     onTestTriggerDryRun: () -> Unit,
     onTestTriggerLive: () -> Unit,
+    onSetDayMode: (DayOfWeek, DayMode) -> Unit = { _, _ -> },
     onConfirmFirstShutdown: () -> Unit = {},
 ) {
     var editing by remember { mutableStateOf<TimeEdit?>(null) }
@@ -97,6 +101,20 @@ fun MainScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Header()
+            // While onboarding isn't done, push SETUP to the top so the user
+            // sees what's blocking. Once everything is granted, SETUP slides
+            // to the bottom and HACKER MODE sits between SCHEDULE and SETUP.
+            val needsSetup = !state.permissions.allGranted
+            val setupPanel: @Composable () -> Unit = {
+                SetupPanel(
+                    state = state,
+                    onFixPermission = onFixPermission,
+                    onTogglePermissionAck = onTogglePermissionAck,
+                    onTestTriggerDryRun = onTestTriggerDryRun,
+                    onTestTriggerLive = onTestTriggerLive,
+                )
+            }
+            if (needsSetup) setupPanel()
             SchedulePanel(
                 state = state,
                 onToggleEnabled = { newValue ->
@@ -110,13 +128,11 @@ fun MainScreen(
                 onEditEnd = { editing = TimeEdit.End },
                 onSetInactivitySeconds = onSetInactivitySeconds,
             )
-            SetupPanel(
-                state = state,
-                onFixPermission = onFixPermission,
-                onTogglePermissionAck = onTogglePermissionAck,
-                onTestTriggerDryRun = onTestTriggerDryRun,
-                onTestTriggerLive = onTestTriggerLive,
+            HackerModePanel(
+                dayModes = state.persisted.dayModes,
+                onSetDayMode = onSetDayMode,
             )
+            if (!needsSetup) setupPanel()
             Spacer(Modifier.weight(1f))
             Footer()
         }
@@ -455,8 +471,8 @@ private fun ScheduleStatusText(state: UiState) {
         when (val s = state.status) {
             is StatusLine.NeedsSetup -> "set up first"
             is StatusLine.Disabled -> "Don't let them win"
-            is StatusLine.Armed -> "opens in\n${formatDuration(s.nextOpenMinutes * 60)}"
-            is StatusLine.Active -> "closes in\n${formatDuration(s.minutesRemainingInWindow * 60)}"
+            is StatusLine.Armed -> "starts in\n${formatDuration(s.nextOpenMinutes * 60)}"
+            is StatusLine.Active -> "ends in\n${formatDuration(s.minutesRemainingInWindow * 60)}"
             is StatusLine.Counting -> "killing in\n${formatDuration(s.secondsRemaining)}"
         }
     Text(
@@ -566,6 +582,140 @@ private fun ScheduleNote(inactivitySeconds: Int) {
 private fun formatInactivity(seconds: Int): String {
     val m = seconds / 60
     return if (m == 1) "1 minute" else "$m minutes"
+}
+
+@Composable
+private fun HackerModePanel(
+    dayModes: Map<DayOfWeek, DayMode>,
+    onSetDayMode: (DayOfWeek, DayMode) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val allDayCount = dayModes.values.count { it == DayMode.AllDay }
+    val offCount = dayModes.values.count { it == DayMode.Off }
+    val trailing = buildString {
+        append(if (allDayCount > 0) "$allDayCount all-day" else "")
+        if (allDayCount > 0 && offCount > 0) append(" · ")
+        append(if (offCount > 0) "$offCount off" else "")
+        if (allDayCount == 0 && offCount == 0) append("default")
+        append("  ${if (expanded) "▾" else "▸"}")
+    }
+
+    // Custom header so "HACKER" can render in Rubik Glitch while "MODE" stays
+    // in the regular panel-label style. Bypasses Panel's built-in label slot.
+    Panel(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "HACKER",
+                    color = Color(0xFFFFAA22),
+                    fontFamily = RubikGlitchFamily,
+                    fontSize = 14.sp,
+                    letterSpacing = 1.sp,
+                )
+                Text(
+                    text = " MODE",
+                    color = Color(0xFF665544),
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp,
+                    letterSpacing = 2.sp,
+                    modifier = Modifier.padding(start = 4.dp, top = 2.dp),
+                )
+            }
+            Text(
+                text = trailing.uppercase(),
+                color = Color(0xFF665544),
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Bold,
+                fontSize = 10.sp,
+                letterSpacing = 1.sp,
+            )
+        }
+
+        if (expanded) {
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = "Per-day kill zone. Tap to cycle: ALL DAY → ZONE → OFF.",
+                color = Color(0xFF998877),
+                fontFamily = FontFamily.Monospace,
+                fontSize = 11.sp,
+                lineHeight = 14.sp,
+            )
+            Spacer(Modifier.height(14.dp))
+
+            // Use ISO order: Mon..Sun left to right.
+            val days = DayOfWeek.entries
+            Row(
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                days.forEach { day ->
+                    DayColumn(
+                        day = day,
+                        mode = dayModes[day] ?: DayMode.Zone,
+                        onChange = { newMode -> onSetDayMode(day, newMode) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DayColumn(
+    day: DayOfWeek,
+    mode: DayMode,
+    onChange: (DayMode) -> Unit,
+) {
+    // Switch position: 0 = AllDay (top), 1 = Zone (middle), 2 = Off (bottom).
+    val position = when (mode) {
+        DayMode.AllDay -> 0
+        DayMode.Zone -> 1
+        DayMode.Off -> 2
+    }
+    val ledColor = when (mode) {
+        DayMode.AllDay -> LedColor.Red
+        DayMode.Zone -> LedColor.Green
+        DayMode.Off -> LedColor.Red
+    }
+    val flicker = mode == DayMode.AllDay
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Led(
+            isOn = mode != DayMode.Off,
+            color = ledColor,
+            diameter = 10.dp,
+            flicker = flicker,
+        )
+        TristateSwitch(
+            position = position,
+            onPositionChange = { newPos ->
+                onChange(
+                    when (newPos) {
+                        0 -> DayMode.AllDay
+                        1 -> DayMode.Zone
+                        else -> DayMode.Off
+                    },
+                )
+            },
+        )
+        Text(
+            text = day.name.take(3),
+            color = Color(0xFF998877),
+            fontFamily = FontFamily.Monospace,
+            fontSize = 9.sp,
+            letterSpacing = 1.sp,
+        )
+    }
 }
 
 @Composable
@@ -879,6 +1029,7 @@ private fun MainScreenPreview() {
                     scheduledPowerOnAcked = true,
                     oemKillerAcked = true,
                     firstShutdownConfirmed = false,
+                    dayModes = ca.asmat.buzzkill.data.DefaultDayModes,
                 ),
                 permissions =
                 PermissionStatus(

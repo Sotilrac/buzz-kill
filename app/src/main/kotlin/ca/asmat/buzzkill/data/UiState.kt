@@ -1,5 +1,23 @@
 package ca.asmat.buzzkill.data
 
+import java.time.DayOfWeek
+
+/**
+ * Per-weekday kill-zone mode (Hacker mode panel).
+ *  - [Off]    : kill zone never engages on this day.
+ *  - [Zone]   : the global kill-zone time window applies.
+ *  - [AllDay] : kill zone is active 24h on this day (inactivity still required).
+ */
+enum class DayMode { Off, Zone, AllDay }
+
+/** Default mode per day: weekdays use the kill zone, weekends are all-day. */
+val DefaultDayModes: Map<DayOfWeek, DayMode> = DayOfWeek.entries.associateWith { d ->
+    when (d) {
+        DayOfWeek.SATURDAY, DayOfWeek.SUNDAY -> DayMode.AllDay
+        else -> DayMode.Zone
+    }
+}
+
 /**
  * Status the UI shows in the header. Derived from PersistedState + permissions.
  */

@@ -9,3 +9,17 @@ naming:
     # Compose theme objects (TiltNeonFamily, RubikGlitchFamily) are camelCase
     # but PascalCase reads better for FontFamily-typed top-level vals.
     constantPattern: '[A-Z][_A-Za-z0-9]*'
+
+complexity:
+  # Composables routinely take many state + callback parameters.
+  LongParameterList:
+    active: false
+  # Compose UI functions are naturally long; the body is declarative layout.
+  LongMethod:
+    active: false
+
+style:
+  # Compose code is full of literal sizes, colours, and offsets that don't
+  # read better as named constants.
+  MagicNumber:
+    active: false

@@ -7,9 +7,11 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.DayOfWeek
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "buzzkill_prefs")
 
@@ -38,6 +40,10 @@ class SettingsRepository(
         val ScheduledPowerOnAcked = booleanPreferencesKey("ack_scheduled_power_on")
         val OemKillerAcked = booleanPreferencesKey("ack_oem_killer")
         val FirstShutdownConfirmed = booleanPreferencesKey("first_shutdown_confirmed")
+
+        // Hacker mode: per-weekday kill-zone behaviour. Stored as one string key
+        // per DayOfWeek (MONDAY..SUNDAY) holding the DayMode name.
+        fun dayMode(day: DayOfWeek) = stringPreferencesKey("day_mode_${day.name}")
     }
 
     val state: Flow<PersistedState> =
@@ -54,6 +60,10 @@ class SettingsRepository(
                 scheduledPowerOnAcked = prefs[Keys.ScheduledPowerOnAcked] ?: false,
                 oemKillerAcked = prefs[Keys.OemKillerAcked] ?: false,
                 firstShutdownConfirmed = prefs[Keys.FirstShutdownConfirmed] ?: false,
+                dayModes = DayOfWeek.entries.associateWith { d ->
+                    prefs[Keys.dayMode(d)]?.let { s -> runCatching { DayMode.valueOf(s) }.getOrNull() }
+                        ?: DefaultDayModes.getValue(d)
+                },
             )
         }
 
@@ -111,6 +121,13 @@ class SettingsRepository(
         context.dataStore.edit { it[Keys.FirstShutdownConfirmed] = confirmed }
     }
 
+    suspend fun setDayMode(
+        day: DayOfWeek,
+        mode: DayMode,
+    ) {
+        context.dataStore.edit { it[Keys.dayMode(day)] = mode.name }
+    }
+
     companion object {
         const val DEFAULT_WINDOW_START = 21 * 60 // 21:00
         const val DEFAULT_WINDOW_END = 5 * 60 + 30 // 05:30
@@ -132,4 +149,5 @@ data class PersistedState(
     val scheduledPowerOnAcked: Boolean,
     val oemKillerAcked: Boolean,
     val firstShutdownConfirmed: Boolean,
+    val dayModes: Map<DayOfWeek, DayMode>,
 )
