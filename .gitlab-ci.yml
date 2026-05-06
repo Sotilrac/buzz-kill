@@ -77,15 +77,18 @@ verify:
 build-release:
   stage: build
   script:
-    - VERSION_NAME="${CI_COMMIT_TAG#v}"
+    # Source of truth for versionName/versionCode is app/build.gradle.kts so
+    # F-Droid's checkupdates can parse them. Assert the tag matches the gradle
+    # versionName before building.
+    - TAG_VERSION="${CI_COMMIT_TAG#v}"
+    - GRADLE_VERSION=$(grep -E '^\s*versionName\s*=' app/build.gradle.kts | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
     - |
-      if [[ "$VERSION_NAME" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-        VERSION_CODE=$(( ${BASH_REMATCH[1]}*10000 + ${BASH_REMATCH[2]}*100 + ${BASH_REMATCH[3]} ))
-      else
-        VERSION_CODE=$(date +%s)
+      if [ "$TAG_VERSION" != "$GRADLE_VERSION" ]; then
+        echo "Tag $CI_COMMIT_TAG (-> $TAG_VERSION) does not match gradle versionName ($GRADLE_VERSION). Bump app/build.gradle.kts and re-tag."
+        exit 1
       fi
-    - echo "Building $CI_COMMIT_TAG → versionName=$VERSION_NAME versionCode=$VERSION_CODE"
-    - ./gradlew :app:assembleDebug -PversionName="$VERSION_NAME" -PversionCode="$VERSION_CODE"
+    - echo "Building $CI_COMMIT_TAG from gradle versionName=$GRADLE_VERSION"
+    - ./gradlew :app:assembleDebug
     - cp app/build/outputs/apk/debug/app-debug.apk "buzzkill-${CI_COMMIT_TAG}.apk"
     # Upload to the GitLab Generic Package Registry so the release link stays
     # valid independent of any single CI job's lifetime.

@@ -15,9 +15,10 @@ android {
         applicationId = "ca.asmat.buzzkill"
         minSdk = 26
         targetSdk = 36
-        // Override from CI with -PversionName=… / -PversionCode=…
-        versionCode = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 10006
-        versionName = (project.findProperty("versionName") as? String) ?: "1.0.6-dev"
+        // Plain literals so F-Droid's checkupdates regex can parse them.
+        // Bump both when cutting a tag; CI asserts the tag matches the value below.
+        versionCode = 10007
+        versionName = "1.0.7"
     }
 
     buildTypes {
