@@ -17,8 +17,8 @@ android {
         targetSdk = 36
         // Plain literals so F-Droid's checkupdates regex can parse them.
         // Bump both when cutting a tag; CI asserts the tag matches the value below.
-        versionCode = 10007
-        versionName = "1.0.7"
+        versionCode = 10008
+        versionName = "1.0.8"
     }
 
     buildTypes {
