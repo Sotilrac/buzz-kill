@@ -1,0 +1,1 @@
+Add Fastlane metadata for the F-Droid listing. Drop the foojay-resolver Gradle plugin so the build no longer downloads JDK toolchains over the network.

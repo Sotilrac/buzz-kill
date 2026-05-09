@@ -1,0 +1,1 @@
+Powers off your phone after inactivity, only inside a nightly kill zone.

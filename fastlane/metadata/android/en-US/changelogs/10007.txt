@@ -1,0 +1,1 @@
+Pin versionCode and versionName as literals so F-Droid's checkupdates regex can parse them.
