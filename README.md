@@ -1,5 +1,7 @@
 # BuzzKill
 
+<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" alt="BuzzKill screenshot" width="300">
+
 Android app that powers off the phone after an inactivity timeout, only inside a configurable nightly kill zone. Single-screen, Winamp-style hardware-panel UI.
 
 Primary target: **OnePlus 11 (OxygenOS)**. The code keeps OEM specifics in `app/src/main/kotlin/ca/asmat/buzzkill/oem/` so adding Pixel, Samsung, Xiaomi, etc. is a data-only change.
