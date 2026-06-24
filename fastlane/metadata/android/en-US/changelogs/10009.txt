@@ -1,0 +1,1 @@
+Fix per-day "advanced day" modes: a day set to Off or AllDay now actually takes effect. Previously the setting was ignored, so a weekend pause still powered the phone off inside the time window (e.g. Saturday 1am).
