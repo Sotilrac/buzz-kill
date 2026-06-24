@@ -1,0 +1,19 @@
+# Git hooks. Install with `make hooks` (runs `lefthook install`).
+pre-commit:
+  parallel: true
+  commands:
+    ktlint:
+      glob: "*.{kt,kts}"
+      run: ./gradlew :app:ktlintFormat && git add {staged_files}
+      stage_fixed: true
+    detekt:
+      glob: "*.{kt,kts}"
+      run: ./gradlew :app:detekt
+
+pre-push:
+  parallel: false
+  commands:
+    tests:
+      run: ./gradlew :app:testDebugUnitTest
+    build:
+      run: ./gradlew :app:assembleDebug
