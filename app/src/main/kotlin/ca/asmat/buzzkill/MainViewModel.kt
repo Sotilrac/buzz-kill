@@ -144,6 +144,43 @@ class MainViewModel(
                 get(Calendar.HOUR_OF_DAY) * 60 + get(Calendar.MINUTE)
             }
 
+        fun currentDayOfWeek(): java.time.DayOfWeek =
+            when (Calendar.getInstance().get(Calendar.DAY_OF_WEEK)) {
+                Calendar.MONDAY -> java.time.DayOfWeek.MONDAY
+                Calendar.TUESDAY -> java.time.DayOfWeek.TUESDAY
+                Calendar.WEDNESDAY -> java.time.DayOfWeek.WEDNESDAY
+                Calendar.THURSDAY -> java.time.DayOfWeek.THURSDAY
+                Calendar.FRIDAY -> java.time.DayOfWeek.FRIDAY
+                Calendar.SATURDAY -> java.time.DayOfWeek.SATURDAY
+                else -> java.time.DayOfWeek.SUNDAY
+            }
+
+        /**
+         * Whether the kill zone is engaged right now, factoring in the per-weekday
+         * "advanced day" (Hacker-mode) override for [day].
+         *
+         * Day attribution is by the current calendar [day]: the early-morning tail of a
+         * wrapping window (e.g. 21:00→05:30) is governed by the day it currently is, not
+         * the day the window opened the night before. This is what makes a weekend pause
+         * actually stop the kill at the Friday→Saturday midnight boundary.
+         *
+         *  - [DayMode.Off]    → never active.
+         *  - [DayMode.Zone]   → active iff [now] is inside the configured time window.
+         *  - [DayMode.AllDay] → always active.
+         */
+        fun isKillZoneActive(
+            day: java.time.DayOfWeek,
+            now: Int,
+            windowStart: Int,
+            windowEnd: Int,
+            dayModes: Map<java.time.DayOfWeek, ca.asmat.buzzkill.data.DayMode>,
+        ): Boolean =
+            when (dayModes[day] ?: ca.asmat.buzzkill.data.DefaultDayModes.getValue(day)) {
+                ca.asmat.buzzkill.data.DayMode.Off -> false
+                ca.asmat.buzzkill.data.DayMode.AllDay -> true
+                ca.asmat.buzzkill.data.DayMode.Zone -> isInWindow(now, windowStart, windowEnd)
+            }
+
         /** Window may wrap midnight (e.g. 23:00 → 07:00). */
         fun isInWindow(
             now: Int,
