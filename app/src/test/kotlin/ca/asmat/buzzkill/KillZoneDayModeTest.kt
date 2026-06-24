@@ -19,8 +19,8 @@ import java.time.DayOfWeek
  * is currently, not the day the window opened the previous evening.
  */
 class KillZoneDayModeTest {
-    private val START = 21 * 60 // 21:00
-    private val END = 5 * 60 + 30 // 05:30 (wraps midnight)
+    private val windowStart = 21 * 60 // 21:00
+    private val windowEnd = 5 * 60 + 30 // 05:30 (wraps midnight)
 
     private fun modes(vararg overrides: Pair<DayOfWeek, DayMode>): Map<DayOfWeek, DayMode> =
         DefaultDayModes + overrides.toMap()
@@ -29,8 +29,8 @@ class KillZoneDayModeTest {
         day: DayOfWeek,
         now: Int,
         dayModes: Map<DayOfWeek, DayMode>,
-        start: Int = START,
-        end: Int = END,
+        start: Int = windowStart,
+        end: Int = windowEnd,
     ) = MainViewModel.isKillZoneActive(day, now, start, end, dayModes)
 
     // --- DayMode.Off: never engages, regardless of time ---
