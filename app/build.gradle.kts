@@ -7,6 +7,16 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Release signing credentials. Supplied as Gradle properties (BUZZKILL_*), which CI
+// injects via ORG_GRADLE_PROJECT_BUZZKILL_* env vars. Set them locally in
+// ~/.gradle/gradle.properties to sign release builds on this machine. When absent —
+// local debug builds, and F-Droid's build (which re-signs with its own key) — the
+// release APK is left unsigned rather than failing configuration.
+val releaseStoreFile = providers.gradleProperty("BUZZKILL_STORE_FILE").orNull?.let { file(it) }
+val releaseStorePassword = providers.gradleProperty("BUZZKILL_STORE_PASSWORD").orNull
+val releaseKeyAlias = providers.gradleProperty("BUZZKILL_KEY_ALIAS").orNull
+val releaseKeyPassword = providers.gradleProperty("BUZZKILL_KEY_PASSWORD").orNull
+
 android {
     namespace = "ca.asmat.buzzkill"
     compileSdk = 36
@@ -21,10 +31,24 @@ android {
         versionName = "1.0.9"
     }
 
+    signingConfigs {
+        // Created only when credentials are present; otherwise release stays unsigned.
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = releaseStoreFile
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // Null when credentials are absent — the APK is then unsigned.
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 

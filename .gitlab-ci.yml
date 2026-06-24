@@ -5,9 +5,11 @@
 #             build. Runs on every push. Uses --continue so all reports come back
 #             even if one tool fails.
 #
-#   release — fires on a git tag (e.g. `v1.0.2`). Builds an APK named
-#             buzzkill-${TAG}.apk with versionName=${TAG#v}, uploads it to the
-#             Generic Package Registry, and creates a GitLab Release entry.
+#   release — fires on a git tag (e.g. `v1.0.2`). Builds a signed release APK
+#             named buzzkill-${TAG}.apk with versionName=${TAG#v}, uploads it to
+#             the Generic Package Registry, and creates a GitLab Release entry.
+#             Signing keystore + credentials come from CI variables (see
+#             build-release below).
 #
 # We collapsed five lint/test/build jobs into one so we pay the docker-image
 # pull cost once per pipeline instead of five times.
@@ -88,8 +90,18 @@ build-release:
         exit 1
       fi
     - echo "Building $CI_COMMIT_TAG from gradle versionName=$GRADLE_VERSION"
-    - ./gradlew :app:assembleDebug
-    - cp app/build/outputs/apk/debug/app-debug.apk "buzzkill-${CI_COMMIT_TAG}.apk"
+    # Materialize the release keystore from the base64 CI variable. The signing
+    # passwords/alias are passed as ORG_GRADLE_PROJECT_BUZZKILL_* CI variables, which
+    # Gradle auto-maps to the BUZZKILL_* project properties read in app/build.gradle.kts.
+    - |
+      if [ -z "$BUZZKILL_KEYSTORE_BASE64" ]; then
+        echo "BUZZKILL_KEYSTORE_BASE64 is not set; cannot produce a signed release. Add it as a masked CI variable."
+        exit 1
+      fi
+    - echo "$BUZZKILL_KEYSTORE_BASE64" | base64 -d > "$CI_PROJECT_DIR/buzzkill-release.jks"
+    - export ORG_GRADLE_PROJECT_BUZZKILL_STORE_FILE="$CI_PROJECT_DIR/buzzkill-release.jks"
+    - ./gradlew :app:assembleRelease
+    - cp app/build/outputs/apk/release/app-release.apk "buzzkill-${CI_COMMIT_TAG}.apk"
     # Upload to the GitLab Generic Package Registry so the release link stays
     # valid independent of any single CI job's lifetime.
     - |
