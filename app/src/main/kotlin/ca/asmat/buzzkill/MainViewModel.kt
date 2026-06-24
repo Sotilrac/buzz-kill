@@ -124,8 +124,15 @@ class MainViewModel(
         if (!perms.allGranted) return StatusLine.NeedsSetup(perms.missingItems)
         if (!p.enabled) return StatusLine.Disabled
         val nowMinute = currentMinuteOfDay()
-        val inWindow = isInWindow(nowMinute, p.windowStartMinutes, p.windowEndMinutes)
-        return if (inWindow) {
+        val active =
+            isKillZoneActive(
+                currentDayOfWeek(),
+                nowMinute,
+                p.windowStartMinutes,
+                p.windowEndMinutes,
+                p.dayModes,
+            )
+        return if (active) {
             val countdown = p.countdownStartedAt
             if (countdown != null) {
                 val elapsedSec = ((System.currentTimeMillis() - countdown) / 1000L).toInt()

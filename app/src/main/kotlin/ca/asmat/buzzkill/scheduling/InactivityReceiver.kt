@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import ca.asmat.buzzkill.MainViewModel
 import ca.asmat.buzzkill.data.SettingsRepository
 import ca.asmat.buzzkill.oem.OemDetector
 import ca.asmat.buzzkill.service.Broadcasts
@@ -34,8 +35,19 @@ class InactivityReceiver : BroadcastReceiver() {
             try {
                 val repo = SettingsRepository(context.applicationContext)
                 val state = repo.state.first()
-                if (!state.enabled || !state.isInWindow) {
-                    Log.i(TAG, "ineligible (enabled=${state.enabled} inWindow=${state.isInWindow})")
+                // Live kill-zone check (current day + per-day "advanced day" mode), not the
+                // stored isInWindow flag. The flag is toggled by fixed-time alarms and can be
+                // stale across a midnight day-boundary (e.g. a Friday-night window bleeding
+                // into a Saturday set to Off), so checking it alone let paused days still kill.
+                val active = MainViewModel.isKillZoneActive(
+                    MainViewModel.currentDayOfWeek(),
+                    MainViewModel.currentMinuteOfDay(),
+                    state.windowStartMinutes,
+                    state.windowEndMinutes,
+                    state.dayModes,
+                )
+                if (!state.enabled || !active) {
+                    Log.i(TAG, "ineligible (enabled=${state.enabled} killZoneActive=$active)")
                     return@launch
                 }
                 repo.recordTriggered(System.currentTimeMillis())

@@ -2,13 +2,17 @@
 
 <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" alt="BuzzKill screenshot" width="300">
 
-Android app that powers off the phone after an inactivity timeout, only inside a configurable nightly kill zone. Single-screen, Winamp-style hardware-panel UI.
+Android app that powers off the phone after an inactivity timeout, only inside a configurable nightly kill zone. Single-screen, Winamp-style hardware-panel UI. Pre-built APKs for every tagged version live on the [releases page](https://gitlab.com/sotilrac/buzz-kill/-/releases).
 
 Primary target: **OnePlus 11 (OxygenOS)**. The code keeps OEM specifics in `app/src/main/kotlin/ca/asmat/buzzkill/oem/` so adding Pixel, Samsung, Xiaomi, etc. is a data-only change.
 
 ## Why this exists
 
-The phone wakes you up. Notifications, the temptation to scroll, the buzz at 2am. BuzzKill kills the phone instead. Inside a kill zone you set (e.g. 23:00–07:00), the app waits for the screen to stay off for N minutes, then triggers the system shutdown via the accessibility service. To come back on in the morning, use the OEM's built-in scheduled power-on (Settings → Additional settings → Scheduled power on/off on OnePlus).
+The phone wakes you up. Notifications, the temptation to scroll, the buzz at 2am. BuzzKill kills the phone instead. Inside a kill zone you set (e.g. 23:00–06:00), the app waits for the screen to stay off for N minutes, then triggers the system shutdown via the accessibility service. To come back on in the morning, use the built-in scheduled power-on (Settings → Additional settings → Scheduled power on/off on OnePlus).
+
+## Install
+
+On your phone, open the [releases page](https://gitlab.com/sotilrac/buzz-kill/-/releases) and download the latest `buzzkill-vX.Y.Z.apk` asset from the most recent release. Open the file from the download notification or your file manager, and confirm the install. The first time you do this, Android will prompt you to allow installs from the source app (browser or file manager); the toggle lives at Settings, Apps, Special app access, Install unknown apps. After install, walk through the onboarding checklist (see [After install: permission walkthrough](#after-install-permission-walkthrough) below) before the app can do anything useful.
 
 ## Host dependencies
 

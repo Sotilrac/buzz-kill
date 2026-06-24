@@ -41,8 +41,7 @@ class AlarmScheduler(
             scheduleDaily(REQ_OPEN, s.windowStartMinutes, Broadcasts.WINDOW_OPEN)
             scheduleDaily(REQ_CLOSE, s.windowEndMinutes, Broadcasts.WINDOW_CLOSE)
 
-            val now = MainViewModel.currentMinuteOfDay()
-            if (MainViewModel.isInWindow(now, s.windowStartMinutes, s.windowEndMinutes)) {
+            if (isInWindowOf(s)) {
                 context.sendBroadcast(internalIntent(Broadcasts.WINDOW_OPEN))
             } else {
                 context.sendBroadcast(internalIntent(Broadcasts.WINDOW_CLOSE))
@@ -133,10 +132,17 @@ class AlarmScheduler(
 
         suspend fun rearm(context: Context) = AlarmScheduler(context).rearmDailyWindow()
 
-        /** Helper for callers that only have a snapshot of state. */
-        fun isInWindowOf(state: PersistedState): Boolean {
-            val now = MainViewModel.currentMinuteOfDay()
-            return MainViewModel.isInWindow(now, state.windowStartMinutes, state.windowEndMinutes)
-        }
+        /**
+         * Whether the kill zone is engaged right now for [state], factoring in the
+         * current day's "advanced day" (Hacker-mode) override.
+         */
+        fun isInWindowOf(state: PersistedState): Boolean =
+            MainViewModel.isKillZoneActive(
+                MainViewModel.currentDayOfWeek(),
+                MainViewModel.currentMinuteOfDay(),
+                state.windowStartMinutes,
+                state.windowEndMinutes,
+                state.dayModes,
+            )
     }
 }

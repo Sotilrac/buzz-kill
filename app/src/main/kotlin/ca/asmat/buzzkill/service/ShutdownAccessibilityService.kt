@@ -107,11 +107,21 @@ class ShutdownAccessibilityService : AccessibilityService() {
         }
     }
 
+    /** Live kill-zone check: current day + per-day mode, not the stored isInWindow flag. */
+    private fun killZoneActiveNow(state: ca.asmat.buzzkill.data.PersistedState): Boolean =
+        ca.asmat.buzzkill.MainViewModel.isKillZoneActive(
+            ca.asmat.buzzkill.MainViewModel.currentDayOfWeek(),
+            ca.asmat.buzzkill.MainViewModel.currentMinuteOfDay(),
+            state.windowStartMinutes,
+            state.windowEndMinutes,
+            state.dayModes,
+        )
+
     private fun onScreenOff() {
         Log.i(TAG, "screen off")
         scope.launch {
             val state = repo.state.first()
-            if (state.enabled && state.isInWindow) {
+            if (state.enabled && killZoneActiveNow(state)) {
                 val now = System.currentTimeMillis()
                 repo.setCountdownStartedAt(now)
                 alarms.scheduleInactivity(now, state.inactivityTimeoutSeconds)
@@ -127,8 +137,17 @@ class ShutdownAccessibilityService : AccessibilityService() {
 
     private fun onWindowOpen() {
         Log.i(TAG, "window open")
-        scope.launch { repo.setStatus(isInWindow = true) }
-        BuzzKillForegroundService.start(applicationContext)
+        scope.launch {
+            val state = repo.state.first()
+            // The daily WINDOW_OPEN alarm fires at the configured start time every day,
+            // but a day set to Off must not arm. AllDay/Zone days arm as expected.
+            if (!killZoneActiveNow(state)) {
+                Log.i(TAG, "window open ignored; kill zone inactive for today's mode")
+                return@launch
+            }
+            repo.setStatus(isInWindow = true)
+            BuzzKillForegroundService.start(applicationContext)
+        }
     }
 
     private fun onWindowClose() {
@@ -145,9 +164,11 @@ class ShutdownAccessibilityService : AccessibilityService() {
         Log.i(TAG, "inactivity fired")
         scope.launch {
             val state = repo.state.first()
-            // Final guard: still in window, still enabled. The screen-on receiver should have
-            // cancelled this alarm already if the user came back, but we double-check.
-            if (!state.enabled || !state.isInWindow) {
+            // Final guard: still in the kill zone, still enabled. The screen-on receiver
+            // should have cancelled this alarm already if the user came back, but we
+            // double-check. The kill-zone check is live (current day + per-day mode), not
+            // the stored isInWindow flag, so an Off/expired day can't slip through.
+            if (!state.enabled || !killZoneActiveNow(state)) {
                 Log.i(TAG, "inactivity fired but no longer eligible; aborting")
                 return@launch
             }
