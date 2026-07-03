@@ -240,33 +240,51 @@ If you see `slide attempt 3/3` followed by `slide-down dispatched 3× but dialog
 
 ## CI / CD
 
-The repo runs `ktlintCheck`, Android Lint, unit tests, and a debug build on every push via `.gitlab-ci.yml`. JUnit results show up in the GitLab pipeline UI; lint reports attach as job artifacts.
+`.gitlab-ci.yml` runs only on `v`-prefixed tag pushes. Branch pushes get no pipeline; run the checks locally with `make verify`. A tag pipeline has three stages:
+
+1. **verify**: `ktlintCheck`, `detekt`, Android Lint, and unit tests. JUnit results show up in the GitLab pipeline UI; lint/ktlint/detekt reports attach as job artifacts.
+2. **build-release**: asserts the tag matches the `versionName` in `app/build.gradle.kts`, then builds a signed release APK and uploads `buzzkill-<tag>.apk` to the GitLab Generic Package Registry.
+3. **release**: creates a GitLab Release entry on the tag with the APK attached as an asset link.
 
 ### Cutting a release
 
-Tag a commit on `main` with a `v`-prefixed semver tag:
+`versionCode`/`versionName` are plain literals in `app/build.gradle.kts` (so F-Droid's checkupdates can parse them). Bump both, commit, then tag the same commit. The tag must match `versionName` or `build-release` fails:
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+# after bumping versionName = "1.0.9" and versionCode = 10009 in app/build.gradle.kts
+git tag v1.0.9
+git push origin main v1.0.9
 ```
 
-The `build-release` and `release` pipeline jobs will:
+### Signing
 
-1. Build a debug-signed APK with `versionName=0.2.0` and a derived `versionCode`.
-2. Upload `buzzkill-v0.2.0.apk` to the project's GitLab Generic Package Registry.
-3. Create a GitLab Release entry on the tag, with the APK attached as an asset link.
+Release APKs are signed with a stable release keystore. The signing config in `app/build.gradle.kts` activates only when the `BUZZKILL_*` Gradle properties are present, so local debug builds and the F-Droid build (which re-signs with its own key) still produce an unsigned release APK instead of failing.
 
-The `versionCode` is computed `MAJOR*10000 + MINOR*100 + PATCH` (so `v0.2.0` → `200`); for non-semver tags it falls back to a Unix timestamp.
+Generate a keystore once and back it up outside the repo (lose it and you can never ship an in-place update again):
+
+```bash
+keytool -genkeypair -v -keystore buzzkill-release.jks -alias buzzkill \
+  -keyalg RSA -keysize 4096 -validity 10000
+```
+
+To sign locally, add the four `BUZZKILL_*` properties to `~/.gradle/gradle.properties` (never commit them): `BUZZKILL_STORE_FILE` (absolute path), `BUZZKILL_STORE_PASSWORD`, `BUZZKILL_KEY_ALIAS`, `BUZZKILL_KEY_PASSWORD`.
+
+For CI, protect the `v*` tag pattern and set: `BUZZKILL_KEYSTORE_BASE64` (from `base64 -w0 buzzkill-release.jks`), plus the three passwords/alias as `ORG_GRADLE_PROJECT_BUZZKILL_*` variables (the prefix maps them to the Gradle properties). `build-release` decodes the keystore before running `assembleRelease`.
+
+Changing the key breaks in-place updates: users on the old key must uninstall first. F-Droid signs with its own key regardless.
 
 ### Local equivalents
 
+A `Makefile` wraps the common tasks (`make help` lists them all):
+
 ```bash
-./gradlew :app:ktlintCheck         # style check
-./gradlew :app:ktlintFormat        # auto-fix
-./gradlew :app:lintDebug           # Android Lint
-./gradlew :app:testDebugUnitTest   # unit tests
-./gradlew :app:assembleDebug       # build APK
+make verify          # compile + detekt + unit tests (fast pre-commit loop)
+make lint            # ktlint + detekt + Android Lint
+make test            # unit tests
+make apk             # signed release APK (needs the BUZZKILL_* properties)
+make apk-debug       # debug APK
+make install-debug   # build + install debug on a connected device
+make hooks           # install the lefthook git hooks
 ```
 
 ## Uninstall
