@@ -1,0 +1,1 @@
+Add an F-Droid feature graphic (store banner). No app behaviour changes; documentation and release-tooling updates only.
