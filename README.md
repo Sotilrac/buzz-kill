@@ -2,6 +2,8 @@
 
 <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" alt="BuzzKill screenshot" width="300">
 
+<a href="https://f-droid.org/packages/ca.asmat.buzzkill/"><img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80"></a>
+
 Android app that powers off the phone after an inactivity timeout, only inside a configurable nightly kill zone. Single-screen, Winamp-style hardware-panel UI. Pre-built APKs for every tagged version live on the [releases page](https://gitlab.com/sotilrac/buzz-kill/-/releases).
 
 Primary target: **OnePlus 11 (OxygenOS)**. The code keeps OEM specifics in `app/src/main/kotlin/ca/asmat/buzzkill/oem/` so adding Pixel, Samsung, Xiaomi, etc. is a data-only change.
